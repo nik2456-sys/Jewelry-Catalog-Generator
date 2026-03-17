@@ -1,15 +1,16 @@
 openapi: 3.1.0
 info:
-  # Do not change the title, if the title changes, the import paths will be broken
   title: Api
   version: 0.1.0
-  description: API specification
+  description: Gemone Diamond Catalog Generator API
 servers:
   - url: /api
     description: Base API path
 tags:
   - name: health
     description: Health operations
+  - name: catalog
+    description: Catalog generation operations
 paths:
   /healthz:
     get:
@@ -24,6 +25,61 @@ paths:
             application/json:
               schema:
                 $ref: "#/components/schemas/HealthStatus"
+  /catalog/upload:
+    post:
+      operationId: uploadExcel
+      tags: [catalog]
+      summary: Upload Excel file and parse jewelry data
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+              required:
+                - file
+      responses:
+        "200":
+          description: Parsed jewelry data
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ParsedExcelData"
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
+  /catalog/generate:
+    post:
+      operationId: generateCatalog
+      tags: [catalog]
+      summary: Generate catalog PDF
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: "#/components/schemas/GenerateCatalogRequest"
+      responses:
+        "200":
+          description: PDF file
+          content:
+            application/pdf:
+              schema:
+                type: string
+                format: binary
+        "400":
+          description: Bad request
+          content:
+            application/json:
+              schema:
+                $ref: "#/components/schemas/ErrorResponse"
 components:
   schemas:
     HealthStatus:
@@ -33,4 +89,114 @@ components:
           type: string
       required:
         - status
-
+    ErrorResponse:
+      type: object
+      properties:
+        error:
+          type: string
+      required:
+        - error
+    JewelryItem:
+      type: object
+      properties:
+        srNo:
+          type: integer
+        title:
+          type: string
+        weight10k:
+          type: number
+        weight14k:
+          type: number
+        weight18k:
+          type: number
+        centerDiamondWeight:
+          type: number
+        sideDiamondWeight:
+          type: number
+        imageBase64:
+          type: string
+          description: Base64 encoded image from the Excel file
+        imageMimeType:
+          type: string
+          description: MIME type of the image (e.g. image/jpeg)
+      required:
+        - srNo
+        - title
+        - weight10k
+        - weight14k
+        - weight18k
+        - centerDiamondWeight
+        - sideDiamondWeight
+    ParsedExcelData:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/JewelryItem"
+        totalRows:
+          type: integer
+      required:
+        - items
+        - totalRows
+    PricingConfig:
+      type: object
+      properties:
+        goldPriceINR:
+          type: number
+          description: Gold price per gram in INR
+        diamondPriceUSD:
+          type: number
+          description: Diamond price per carat in USD
+        usdToInrRate:
+          type: number
+          description: USD to INR conversion rate
+        labourPerGram:
+          type: number
+          description: Labour charge per gram of metal
+        wastageFixed:
+          type: number
+          description: Fixed wastage amount (B2B only)
+        handlingPercent:
+          type: number
+          description: Handling charge percentage
+        profitPercent:
+          type: number
+          description: Profit margin percentage (B2C only)
+        adminChargePercent:
+          type: number
+          description: Admin charge percentage (B2B only)
+      required:
+        - goldPriceINR
+        - diamondPriceUSD
+        - usdToInrRate
+        - labourPerGram
+        - wastageFixed
+        - handlingPercent
+        - profitPercent
+        - adminChargePercent
+    GenerateCatalogRequest:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: "#/components/schemas/JewelryItem"
+        pricingConfig:
+          $ref: "#/components/schemas/PricingConfig"
+        catalogType:
+          type: string
+          enum: [B2B, B2C]
+        showItemizedCharges:
+          type: boolean
+          description: Whether to show individual charge breakdown in the catalog
+        karat:
+          type: string
+          enum: ["10K", "14K", "18K"]
+          description: Gold karat for the catalog
+      required:
+        - items
+        - pricingConfig
+        - catalogType
+        - showItemizedCharges
+        - karat

@@ -1,0 +1,18 @@
+packages:
+  "react-dropzone": "Drag and drop file upload for Excel files"
+  "framer-motion": "Animations and page transitions"
+  "lucide-react": "Icons for UI"
+  "clsx": "Utility for constructing className strings"
+  "tailwind-merge": "Utility for merging tailwind classes safely"
+
+images:
+  - path: "artifacts/catalog-generator/public/images/hero-bg.png"
+    description: "Abstract elegant luxury background with soft ivory and pale gold flowing silk textures, highly detailed, subtle depth, cinematic lighting"
+    aspect_ratio: "16:9"
+  - path: "artifacts/catalog-generator/public/images/logo.png"
+    description: "Minimalist luxury jewelry brand logo mark in metallic gold on transparent background, featuring a stylized geometric diamond"
+    aspect_ratio: "1:1"
+
+notes:
+  - "Using provided @workspace/api-client-react hooks for API communication"
+  - "Generating a single-page sophisticated dashboard for the catalog generator"

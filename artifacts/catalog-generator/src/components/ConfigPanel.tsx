@@ -1,0 +1,200 @@
+import { Settings, Calculator, Percent, DollarSign, Coins, Gem } from "lucide-react";
+import { motion } from "framer-motion";
+import type { CatalogFormState } from "@/hooks/use-catalog";
+import { cn } from "@/lib/utils";
+
+interface ConfigPanelProps {
+  formState: CatalogFormState;
+  updatePricing: (key: keyof CatalogFormState["pricingConfig"], value: number) => void;
+  updateField: <K extends keyof CatalogFormState>(key: K, value: CatalogFormState[K]) => void;
+}
+
+export function ConfigPanel({ formState, updatePricing, updateField }: ConfigPanelProps) {
+  const InputGroup = ({ 
+    label, 
+    value, 
+    onChange, 
+    icon: Icon,
+    prefix
+  }: { 
+    label: string, 
+    value: number, 
+    onChange: (val: number) => void,
+    icon?: any,
+    prefix?: string
+  }) => (
+    <div className="space-y-2">
+      <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
+        {Icon && <Icon className="w-3.5 h-3.5" />}
+        {label}
+      </label>
+      <div className="relative">
+        {prefix && (
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">
+            {prefix}
+          </span>
+        )}
+        <input
+          type="number"
+          value={value}
+          onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+          className={cn(
+            "w-full bg-white border border-border rounded-xl px-4 py-2.5 text-secondary font-medium",
+            "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200",
+            prefix && "pl-8"
+          )}
+        />
+      </div>
+    </div>
+  );
+
+  return (
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      className="w-full glass-panel rounded-2xl overflow-hidden mb-8"
+    >
+      <div className="bg-secondary text-secondary-foreground px-6 py-4 flex items-center justify-between">
+        <div className="flex items-center gap-3">
+          <Settings className="w-5 h-5 text-primary" />
+          <h2 className="text-lg font-serif m-0">Catalog Configuration</h2>
+        </div>
+        
+        <div className="flex bg-white/10 rounded-lg p-1 backdrop-blur-sm">
+          {(["B2B", "B2C"] as const).map((type) => (
+            <button
+              key={type}
+              onClick={() => updateField("catalogType", type)}
+              className={cn(
+                "px-6 py-1.5 rounded-md text-sm font-bold transition-all duration-200",
+                formState.catalogType === type 
+                  ? "bg-primary text-primary-foreground shadow-sm" 
+                  : "text-white/70 hover:text-white hover:bg-white/5"
+              )}
+            >
+              {type}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      <div className="p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
+        {/* Core Pricing */}
+        <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <InputGroup 
+            label="Gold Price/g" 
+            value={formState.pricingConfig.goldPriceINR} 
+            onChange={(v) => updatePricing("goldPriceINR", v)} 
+            prefix="₹"
+            icon={Coins}
+          />
+          <InputGroup 
+            label="Diamond Price/ct" 
+            value={formState.pricingConfig.diamondPriceUSD} 
+            onChange={(v) => updatePricing("diamondPriceUSD", v)} 
+            prefix="$"
+            icon={Gem}
+          />
+          <InputGroup 
+            label="USD to INR Rate" 
+            value={formState.pricingConfig.usdToInrRate} 
+            onChange={(v) => updatePricing("usdToInrRate", v)} 
+            prefix="₹"
+            icon={DollarSign}
+          />
+          <InputGroup 
+            label="Labour per gram" 
+            value={formState.pricingConfig.labourPerGram} 
+            onChange={(v) => updatePricing("labourPerGram", v)} 
+            prefix="₹"
+            icon={Calculator}
+          />
+          
+          {formState.catalogType === "B2B" && (
+            <InputGroup 
+              label="Fixed Wastage" 
+              value={formState.pricingConfig.wastageFixed} 
+              onChange={(v) => updatePricing("wastageFixed", v)} 
+              prefix="₹"
+            />
+          )}
+
+          <InputGroup 
+            label="Handling Charge" 
+            value={formState.pricingConfig.handlingPercent} 
+            onChange={(v) => updatePricing("handlingPercent", v)} 
+            prefix="%"
+            icon={Percent}
+          />
+          
+          {formState.catalogType === "B2C" && (
+            <InputGroup 
+              label="Profit Margin" 
+              value={formState.pricingConfig.profitPercent} 
+              onChange={(v) => updatePricing("profitPercent", v)} 
+              prefix="%"
+              icon={Percent}
+            />
+          )}
+          
+          {formState.catalogType === "B2B" && (
+            <InputGroup 
+              label="Admin Charge" 
+              value={formState.pricingConfig.adminChargePercent} 
+              onChange={(v) => updatePricing("adminChargePercent", v)} 
+              prefix="%"
+              icon={Percent}
+            />
+          )}
+        </div>
+
+        {/* Output Options */}
+        <div className="lg:col-span-4 border-t lg:border-t-0 lg:border-l border-border pt-6 lg:pt-0 lg:pl-8 flex flex-col gap-6">
+          <div className="space-y-3">
+            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
+              Target Karat
+            </label>
+            <div className="grid grid-cols-3 gap-2">
+              {(["10K", "14K", "18K"] as const).map((k) => (
+                <button
+                  key={k}
+                  onClick={() => updateField("karat", k)}
+                  className={cn(
+                    "py-2 rounded-xl border text-sm font-bold transition-all duration-200",
+                    formState.karat === k
+                      ? "border-primary bg-primary/10 text-primary shadow-[0_2px_10px_rgb(212,175,55,0.2)]"
+                      : "border-border bg-background text-muted-foreground hover:border-primary/30"
+                  )}
+                >
+                  {k}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          <div className="space-y-3 mt-auto">
+            <label className="flex items-center gap-3 p-4 rounded-xl border border-border bg-background cursor-pointer hover:border-primary/30 transition-colors">
+              <div className="relative flex items-center">
+                <input 
+                  type="checkbox" 
+                  checked={formState.showItemizedCharges}
+                  onChange={(e) => updateField("showItemizedCharges", e.target.checked)}
+                  className="peer sr-only"
+                />
+                <div className="w-6 h-6 border-2 border-muted-foreground rounded bg-white peer-checked:bg-primary peer-checked:border-primary transition-all flex items-center justify-center">
+                  <svg className="w-4 h-4 text-white opacity-0 peer-checked:opacity-100 transition-opacity" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinelinejoin="round">
+                    <polyline points="20 6 9 17 4 12"></polyline>
+                  </svg>
+                </div>
+              </div>
+              <div>
+                <p className="text-sm font-bold text-secondary">Itemized Breakdown</p>
+                <p className="text-xs text-muted-foreground">Show individual charges on PDF</p>
+              </div>
+            </label>
+          </div>
+        </div>
+      </div>
+    </motion.div>
+  );
+}

@@ -1,0 +1,95 @@
+@import url('https://fonts.googleapis.com/css2?family=Playfair+Display:ital,wght@0,400..900;1,400..900&family=Lato:wght@300;400;700&display=swap');
+@import "tailwindcss";
+
+@theme inline {
+  --font-sans: 'Lato', sans-serif;
+  --font-serif: 'Playfair Display', serif;
+
+  --color-background: hsl(var(--background));
+  --color-foreground: hsl(var(--foreground));
+  --color-card: hsl(var(--card));
+  --color-card-foreground: hsl(var(--card-foreground));
+  --color-primary: hsl(var(--primary));
+  --color-primary-foreground: hsl(var(--primary-foreground));
+  --color-secondary: hsl(var(--secondary));
+  --color-secondary-foreground: hsl(var(--secondary-foreground));
+  --color-muted: hsl(var(--muted));
+  --color-muted-foreground: hsl(var(--muted-foreground));
+  --color-accent: hsl(var(--accent));
+  --color-accent-foreground: hsl(var(--accent-foreground));
+  --color-border: hsl(var(--border));
+  --color-ring: hsl(var(--ring));
+}
+
+:root {
+  /* Ivory / Pearl Background */
+  --background: 40 33% 98%;
+  --foreground: 0 0% 15%;
+  
+  /* White Cards with warm shadow */
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 15%;
+  
+  /* Luxury Gold */
+  --primary: 43 74% 49%;
+  --primary-foreground: 0 0% 100%;
+  
+  /* Deep Charcoal / Almost Black */
+  --secondary: 0 0% 12%;
+  --secondary-foreground: 40 33% 98%;
+  
+  /* Soft warm gray for muted */
+  --muted: 40 10% 90%;
+  --muted-foreground: 40 5% 45%;
+  
+  /* Lighter Gold Accent */
+  --accent: 43 60% 65%;
+  --accent-foreground: 0 0% 100%;
+  
+  /* Warm subtle borders */
+  --border: 40 20% 85%;
+  --ring: 43 74% 49%;
+}
+
+@layer base {
+  body {
+    @apply bg-background text-foreground antialiased font-sans;
+    background-image: radial-gradient(rgba(212, 175, 55, 0.03) 1px, transparent 1px);
+    background-size: 24px 24px;
+  }
+
+  h1, h2, h3, h4, h5, h6 {
+    @apply font-serif tracking-tight text-secondary;
+  }
+}
+
+/* Custom Scrollbar for elegant feel */
+::-webkit-scrollbar {
+  width: 8px;
+  height: 8px;
+}
+::-webkit-scrollbar-track {
+  background: hsl(var(--background)); 
+}
+::-webkit-scrollbar-thumb {
+  background: hsl(var(--border)); 
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: hsl(var(--primary) / 0.5); 
+}
+
+/* Utilities for beautiful depth */
+@layer utilities {
+  .glass-panel {
+    @apply bg-white/80 backdrop-blur-xl border border-white/50 shadow-[0_8px_30px_rgb(212,175,55,0.06)];
+  }
+  
+  .gold-gradient-text {
+    @apply bg-clip-text text-transparent bg-gradient-to-r from-[#D4AF37] via-[#AA7C11] to-[#D4AF37];
+  }
+  
+  .gold-gradient-bg {
+    @apply bg-gradient-to-r from-[#D4AF37] to-[#AA7C11] text-white shadow-lg shadow-primary/20 hover:shadow-primary/40;
+  }
+}
