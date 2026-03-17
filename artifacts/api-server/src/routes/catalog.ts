@@ -62,8 +62,7 @@ function calcPricesForKarat(item: JewelryItem, config: PricingConfig, karat: Kar
   const factor = KARAT_FACTORS[karat];
   const weight = getWeightForKarat(item, karat);
 
-  // Gold price is now in USD directly: formula (factor * goldPriceUSD * weight) / 75
-  const metalCalcUSD = (factor * config.goldPriceUSD * weight) / 75;
+  const metalCalcUSD = factor * config.goldPriceUSD * weight;
 
   const centerDiamondUSD = item.centerDiamondWeight * config.diamondPriceUSD;
   const sideDiamondUSD = item.sideDiamondWeight * config.diamondPriceUSD;
