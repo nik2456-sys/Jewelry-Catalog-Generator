@@ -6,7 +6,6 @@
  * OpenAPI spec version: 0.1.0
  */
 import type { GenerateCatalogRequestCatalogType } from "./generateCatalogRequestCatalogType";
-import type { GenerateCatalogRequestKarat } from "./generateCatalogRequestKarat";
 import type { JewelryItem } from "./jewelryItem";
 import type { PricingConfig } from "./pricingConfig";
 
@@ -16,6 +15,4 @@ export interface GenerateCatalogRequest {
   catalogType: GenerateCatalogRequestCatalogType;
   /** Whether to show individual charge breakdown in the catalog */
   showItemizedCharges: boolean;
-  /** Gold karat for the catalog */
-  karat: GenerateCatalogRequestKarat;
 }

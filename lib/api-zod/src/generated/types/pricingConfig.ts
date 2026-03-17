@@ -13,10 +13,10 @@ export interface PricingConfig {
   diamondPriceUSD: number;
   /** USD to INR conversion rate */
   usdToInrRate: number;
-  /** Labour charge per gram of metal */
-  labourPerGram: number;
-  /** Fixed wastage amount (B2B only) */
-  wastageFixed: number;
+  /** Labour charge per gram of metal in USD */
+  labourPerGramUSD: number;
+  /** Fixed wastage amount in USD (B2B only) */
+  wastageFixedUSD: number;
   /** Handling charge percentage */
   handlingPercent: number;
   /** Profit margin percentage (B2C only) */

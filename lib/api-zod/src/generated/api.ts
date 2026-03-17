@@ -72,8 +72,12 @@ export const GenerateCatalogBody = zod.object({
     goldPriceINR: zod.number().describe("Gold price per gram in INR"),
     diamondPriceUSD: zod.number().describe("Diamond price per carat in USD"),
     usdToInrRate: zod.number().describe("USD to INR conversion rate"),
-    labourPerGram: zod.number().describe("Labour charge per gram of metal"),
-    wastageFixed: zod.number().describe("Fixed wastage amount (B2B only)"),
+    labourPerGramUSD: zod
+      .number()
+      .describe("Labour charge per gram of metal in USD"),
+    wastageFixedUSD: zod
+      .number()
+      .describe("Fixed wastage amount in USD (B2B only)"),
     handlingPercent: zod.number().describe("Handling charge percentage"),
     profitPercent: zod.number().describe("Profit margin percentage (B2C only)"),
     adminChargePercent: zod
@@ -84,5 +88,4 @@ export const GenerateCatalogBody = zod.object({
   showItemizedCharges: zod
     .boolean()
     .describe("Whether to show individual charge breakdown in the catalog"),
-  karat: zod.enum(["10K", "14K", "18K"]).describe("Gold karat for the catalog"),
 });

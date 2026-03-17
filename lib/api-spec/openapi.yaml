@@ -151,12 +151,12 @@ components:
         usdToInrRate:
           type: number
           description: USD to INR conversion rate
-        labourPerGram:
+        labourPerGramUSD:
           type: number
-          description: Labour charge per gram of metal
-        wastageFixed:
+          description: Labour charge per gram of metal in USD
+        wastageFixedUSD:
           type: number
-          description: Fixed wastage amount (B2B only)
+          description: Fixed wastage amount in USD (B2B only)
         handlingPercent:
           type: number
           description: Handling charge percentage
@@ -170,8 +170,8 @@ components:
         - goldPriceINR
         - diamondPriceUSD
         - usdToInrRate
-        - labourPerGram
-        - wastageFixed
+        - labourPerGramUSD
+        - wastageFixedUSD
         - handlingPercent
         - profitPercent
         - adminChargePercent
@@ -190,13 +190,8 @@ components:
         showItemizedCharges:
           type: boolean
           description: Whether to show individual charge breakdown in the catalog
-        karat:
-          type: string
-          enum: ["10K", "14K", "18K"]
-          description: Gold karat for the catalog
       required:
         - items
         - pricingConfig
         - catalogType
         - showItemizedCharges
-        - karat

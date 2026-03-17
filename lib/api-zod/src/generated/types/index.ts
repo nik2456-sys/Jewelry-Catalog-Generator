@@ -9,7 +9,6 @@
 export * from "./errorResponse";
 export * from "./generateCatalogRequest";
 export * from "./generateCatalogRequestCatalogType";
-export * from "./generateCatalogRequestKarat";
 export * from "./healthStatus";
 export * from "./jewelryItem";
 export * from "./parsedExcelData";

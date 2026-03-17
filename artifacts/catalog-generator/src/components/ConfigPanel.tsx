@@ -10,18 +10,18 @@ interface ConfigPanelProps {
 }
 
 export function ConfigPanel({ formState, updatePricing, updateField }: ConfigPanelProps) {
-  const InputGroup = ({ 
-    label, 
-    value, 
-    onChange, 
+  const InputGroup = ({
+    label,
+    value,
+    onChange,
     icon: Icon,
-    prefix
-  }: { 
-    label: string, 
-    value: number, 
-    onChange: (val: number) => void,
-    icon?: any,
-    prefix?: string
+    prefix,
+  }: {
+    label: string;
+    value: number;
+    onChange: (val: number) => void;
+    icon?: React.ElementType;
+    prefix?: string;
   }) => (
     <div className="space-y-2">
       <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
@@ -49,7 +49,7 @@ export function ConfigPanel({ formState, updatePricing, updateField }: ConfigPan
   );
 
   return (
-    <motion.div 
+    <motion.div
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       className="w-full glass-panel rounded-2xl overflow-hidden mb-8"
@@ -59,7 +59,7 @@ export function ConfigPanel({ formState, updatePricing, updateField }: ConfigPan
           <Settings className="w-5 h-5 text-primary" />
           <h2 className="text-lg font-serif m-0">Catalog Configuration</h2>
         </div>
-        
+
         <div className="flex bg-white/10 rounded-lg p-1 backdrop-blur-sm">
           {(["B2B", "B2C"] as const).map((type) => (
             <button
@@ -67,8 +67,8 @@ export function ConfigPanel({ formState, updatePricing, updateField }: ConfigPan
               onClick={() => updateField("catalogType", type)}
               className={cn(
                 "px-6 py-1.5 rounded-md text-sm font-bold transition-all duration-200",
-                formState.catalogType === type 
-                  ? "bg-primary text-primary-foreground shadow-sm" 
+                formState.catalogType === type
+                  ? "bg-primary text-primary-foreground shadow-sm"
                   : "text-white/70 hover:text-white hover:bg-white/5"
               )}
             >
@@ -80,118 +80,112 @@ export function ConfigPanel({ formState, updatePricing, updateField }: ConfigPan
 
       <div className="p-6 grid grid-cols-1 lg:grid-cols-12 gap-8">
         {/* Core Pricing */}
-        <div className="lg:col-span-8 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          <InputGroup 
-            label="Gold Price/g" 
-            value={formState.pricingConfig.goldPriceINR} 
-            onChange={(v) => updatePricing("goldPriceINR", v)} 
+        <div className="lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+          <InputGroup
+            label="Gold Price/g (INR)"
+            value={formState.pricingConfig.goldPriceINR}
+            onChange={(v) => updatePricing("goldPriceINR", v)}
             prefix="₹"
             icon={Coins}
           />
-          <InputGroup 
-            label="Diamond Price/ct" 
-            value={formState.pricingConfig.diamondPriceUSD} 
-            onChange={(v) => updatePricing("diamondPriceUSD", v)} 
+          <InputGroup
+            label="Diamond Price/ct (USD)"
+            value={formState.pricingConfig.diamondPriceUSD}
+            onChange={(v) => updatePricing("diamondPriceUSD", v)}
             prefix="$"
             icon={Gem}
           />
-          <InputGroup 
-            label="USD to INR Rate" 
-            value={formState.pricingConfig.usdToInrRate} 
-            onChange={(v) => updatePricing("usdToInrRate", v)} 
+          <InputGroup
+            label="USD to INR Rate"
+            value={formState.pricingConfig.usdToInrRate}
+            onChange={(v) => updatePricing("usdToInrRate", v)}
             prefix="₹"
             icon={DollarSign}
           />
-          <InputGroup 
-            label="Labour per gram" 
-            value={formState.pricingConfig.labourPerGram} 
-            onChange={(v) => updatePricing("labourPerGram", v)} 
-            prefix="₹"
+          <InputGroup
+            label="Labour per gram (USD)"
+            value={formState.pricingConfig.labourPerGramUSD}
+            onChange={(v) => updatePricing("labourPerGramUSD", v)}
+            prefix="$"
             icon={Calculator}
           />
-          
+
           {formState.catalogType === "B2B" && (
-            <InputGroup 
-              label="Fixed Wastage" 
-              value={formState.pricingConfig.wastageFixed} 
-              onChange={(v) => updatePricing("wastageFixed", v)} 
-              prefix="₹"
+            <InputGroup
+              label="Fixed Wastage (USD)"
+              value={formState.pricingConfig.wastageFixedUSD}
+              onChange={(v) => updatePricing("wastageFixedUSD", v)}
+              prefix="$"
             />
           )}
 
-          <InputGroup 
-            label="Handling Charge" 
-            value={formState.pricingConfig.handlingPercent} 
-            onChange={(v) => updatePricing("handlingPercent", v)} 
+          <InputGroup
+            label="Handling Charge"
+            value={formState.pricingConfig.handlingPercent}
+            onChange={(v) => updatePricing("handlingPercent", v)}
             prefix="%"
             icon={Percent}
           />
-          
+
           {formState.catalogType === "B2C" && (
-            <InputGroup 
-              label="Profit Margin" 
-              value={formState.pricingConfig.profitPercent} 
-              onChange={(v) => updatePricing("profitPercent", v)} 
+            <InputGroup
+              label="Profit Margin"
+              value={formState.pricingConfig.profitPercent}
+              onChange={(v) => updatePricing("profitPercent", v)}
               prefix="%"
               icon={Percent}
             />
           )}
-          
+
           {formState.catalogType === "B2B" && (
-            <InputGroup 
-              label="Admin Charge" 
-              value={formState.pricingConfig.adminChargePercent} 
-              onChange={(v) => updatePricing("adminChargePercent", v)} 
+            <InputGroup
+              label="Admin Charge"
+              value={formState.pricingConfig.adminChargePercent}
+              onChange={(v) => updatePricing("adminChargePercent", v)}
               prefix="%"
               icon={Percent}
             />
           )}
         </div>
 
-        {/* Output Options */}
-        <div className="lg:col-span-4 border-t lg:border-t-0 lg:border-l border-border pt-6 lg:pt-0 lg:pl-8 flex flex-col gap-6">
-          <div className="space-y-3">
-            <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider">
-              Target Karat
-            </label>
-            <div className="grid grid-cols-3 gap-2">
-              {(["10K", "14K", "18K"] as const).map((k) => (
-                <button
-                  key={k}
-                  onClick={() => updateField("karat", k)}
-                  className={cn(
-                    "py-2 rounded-xl border text-sm font-bold transition-all duration-200",
-                    formState.karat === k
-                      ? "border-primary bg-primary/10 text-primary shadow-[0_2px_10px_rgb(212,175,55,0.2)]"
-                      : "border-border bg-background text-muted-foreground hover:border-primary/30"
-                  )}
-                >
-                  {k}
-                </button>
-              ))}
-            </div>
-          </div>
+        {/* Output Options — Itemized Breakdown only */}
+        <div className="lg:col-span-3 border-t lg:border-t-0 lg:border-l border-border pt-6 lg:pt-0 lg:pl-8 flex flex-col justify-center">
+          <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
+            PDF Options
+          </p>
 
-          <div className="space-y-3 mt-auto">
-            <label className="flex items-center gap-3 p-4 rounded-xl border border-border bg-background cursor-pointer hover:border-primary/30 transition-colors">
-              <div className="relative flex items-center">
-                <input 
-                  type="checkbox" 
-                  checked={formState.showItemizedCharges}
-                  onChange={(e) => updateField("showItemizedCharges", e.target.checked)}
-                  className="peer sr-only"
-                />
-                <div className="w-6 h-6 border-2 border-muted-foreground rounded bg-white peer-checked:bg-primary peer-checked:border-primary transition-all flex items-center justify-center">
-                  <svg className="w-4 h-4 text-white opacity-0 peer-checked:opacity-100 transition-opacity" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinelinejoin="round">
-                    <polyline points="20 6 9 17 4 12"></polyline>
-                  </svg>
-                </div>
+          <label className="flex items-center gap-3 p-4 rounded-xl border border-border bg-background cursor-pointer hover:border-primary/30 transition-colors">
+            <div className="relative flex items-center">
+              <input
+                type="checkbox"
+                checked={formState.showItemizedCharges}
+                onChange={(e) => updateField("showItemizedCharges", e.target.checked)}
+                className="peer sr-only"
+              />
+              <div className="w-6 h-6 border-2 border-muted-foreground rounded bg-white peer-checked:bg-primary peer-checked:border-primary transition-all flex items-center justify-center">
+                <svg
+                  className="w-4 h-4 text-white opacity-0 peer-checked:opacity-100 transition-opacity"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="3"
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                >
+                  <polyline points="20 6 9 17 4 12" />
+                </svg>
               </div>
-              <div>
-                <p className="text-sm font-bold text-secondary">Itemized Breakdown</p>
-                <p className="text-xs text-muted-foreground">Show individual charges on PDF</p>
-              </div>
-            </label>
+            </div>
+            <div>
+              <p className="text-sm font-bold text-secondary">Itemized Breakdown</p>
+              <p className="text-xs text-muted-foreground">Show charge details on PDF</p>
+            </div>
+          </label>
+
+          <div className="mt-4 p-3 rounded-xl bg-primary/5 border border-primary/20">
+            <p className="text-xs font-bold text-primary mb-1">Prices Generated For:</p>
+            <p className="text-xs text-muted-foreground">10K · 14K · 18K Gold</p>
+            <p className="text-xs text-muted-foreground mt-1">EF Color · VVS/VS Clarity</p>
           </div>
         </div>
       </div>

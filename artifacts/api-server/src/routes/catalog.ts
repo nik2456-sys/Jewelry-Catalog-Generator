@@ -22,8 +22,8 @@ interface PricingConfig {
   goldPriceINR: number;
   diamondPriceUSD: number;
   usdToInrRate: number;
-  labourPerGram: number;
-  wastageFixed: number;
+  labourPerGramUSD: number;
+  wastageFixedUSD: number;
   handlingPercent: number;
   profitPercent: number;
   adminChargePercent: number;
@@ -34,25 +34,33 @@ interface GenerateCatalogRequest {
   pricingConfig: PricingConfig;
   catalogType: "B2B" | "B2C";
   showItemizedCharges: boolean;
-  karat: "10K" | "14K" | "18K";
 }
 
-function getKaratFactor(karat: string): number {
-  if (karat === "10K") return 0.45;
-  if (karat === "14K") return 0.65;
-  if (karat === "18K") return 0.75;
-  return 0.65;
-}
+type KaratKey = "10K" | "14K" | "18K";
 
-function getWeightForKarat(item: JewelryItem, karat: string): number {
+const KARAT_FACTORS: Record<KaratKey, number> = { "10K": 0.45, "14K": 0.65, "18K": 0.75 };
+
+function getWeightForKarat(item: JewelryItem, karat: KaratKey): number {
   if (karat === "10K") return item.weight10k;
   if (karat === "14K") return item.weight14k;
-  if (karat === "18K") return item.weight18k;
-  return item.weight14k;
+  return item.weight18k;
 }
 
-function calcPrices(item: JewelryItem, config: PricingConfig, karat: string, catalogType: "B2B" | "B2C") {
-  const factor = getKaratFactor(karat);
+interface KaratPrices {
+  metalCalcUSD: number;
+  centerDiamondUSD: number;
+  sideDiamondUSD: number;
+  labourUSD: number;
+  wastageUSD: number;
+  handlingUSD: number;
+  adminUSD: number;
+  profitUSD: number;
+  total: number;
+  weight: number;
+}
+
+function calcPricesForKarat(item: JewelryItem, config: PricingConfig, karat: KaratKey, catalogType: "B2B" | "B2C"): KaratPrices {
+  const factor = KARAT_FACTORS[karat];
   const weight = getWeightForKarat(item, karat);
 
   const metalCalcINR = (factor * config.goldPriceINR * weight) / 75;
@@ -61,51 +69,41 @@ function calcPrices(item: JewelryItem, config: PricingConfig, karat: string, cat
   const centerDiamondUSD = item.centerDiamondWeight * config.diamondPriceUSD;
   const sideDiamondUSD = item.sideDiamondWeight * config.diamondPriceUSD;
 
-  const labourINR = config.labourPerGram * weight;
-  const labourUSD = labourINR / config.usdToInrRate;
+  // Labour and wastage are now directly in USD
+  const labourUSD = config.labourPerGramUSD * weight;
 
   if (catalogType === "B2B") {
-    const wastageUSD = config.wastageFixed / config.usdToInrRate;
+    const wastageUSD = config.wastageFixedUSD;
     const subtotal = metalCalcUSD + centerDiamondUSD + sideDiamondUSD + labourUSD;
     const handlingUSD = subtotal * (config.handlingPercent / 100);
     const adminUSD = subtotal * (config.adminChargePercent / 100);
     const total = subtotal + wastageUSD + handlingUSD + adminUSD;
-
-    return {
-      metalCalcUSD,
-      centerDiamondUSD,
-      sideDiamondUSD,
-      labourUSD,
-      wastageUSD,
-      handlingUSD,
-      adminUSD,
-      profitUSD: 0,
-      total,
-    };
+    return { metalCalcUSD, centerDiamondUSD, sideDiamondUSD, labourUSD, wastageUSD, handlingUSD, adminUSD, profitUSD: 0, total, weight };
   } else {
     const diamondCalcUSD = centerDiamondUSD + sideDiamondUSD;
     const subtotal = metalCalcUSD + diamondCalcUSD + labourUSD;
     const handlingUSD = subtotal * (config.handlingPercent / 100);
     const profitUSD = (subtotal + handlingUSD) * (config.profitPercent / 100);
     const total = subtotal + handlingUSD + profitUSD;
-
-    return {
-      metalCalcUSD,
-      centerDiamondUSD,
-      sideDiamondUSD,
-      diamondCalcUSD,
-      labourUSD,
-      wastageUSD: 0,
-      handlingUSD,
-      adminUSD: 0,
-      profitUSD,
-      total,
-    };
+    return { metalCalcUSD, centerDiamondUSD, sideDiamondUSD, labourUSD, wastageUSD: 0, handlingUSD, adminUSD: 0, profitUSD, total, weight };
   }
+}
+
+function calcAllKarats(item: JewelryItem, config: PricingConfig, catalogType: "B2B" | "B2C") {
+  return {
+    "10K": calcPricesForKarat(item, config, "10K", catalogType),
+    "14K": calcPricesForKarat(item, config, "14K", catalogType),
+    "18K": calcPricesForKarat(item, config, "18K", catalogType),
+  };
 }
 
 function fmt(v: number): string {
   return `$${v.toFixed(2)}`;
+}
+
+function getMonthYear(): string {
+  const now = new Date();
+  return now.toLocaleDateString("en-US", { month: "long", year: "numeric" }).toUpperCase();
 }
 
 router.post("/upload", upload.single("file"), async (req, res) => {
@@ -214,214 +212,233 @@ router.post("/upload", upload.single("file"), async (req, res) => {
 router.post("/generate", async (req, res) => {
   try {
     const body = req.body as GenerateCatalogRequest;
-    const { items, pricingConfig, catalogType, showItemizedCharges, karat } = body;
+    const { items, pricingConfig, catalogType, showItemizedCharges } = body;
 
-    if (!items || !pricingConfig || !catalogType || !karat) {
+    if (!items || !pricingConfig || !catalogType) {
       res.status(400).json({ error: "Missing required fields" });
       return;
     }
 
-    const doc = new PDFDocument({
-      size: "A4",
-      margin: 40,
-      info: {
-        Title: `Gemone Diamond - ${catalogType} Catalog - ${karat}`,
-        Author: "Gemone Diamond",
-      },
-    });
-
-    res.setHeader("Content-Type", "application/pdf");
-    res.setHeader("Content-Disposition", `attachment; filename="gemone-diamond-${catalogType.toLowerCase()}-${karat}-catalog.pdf"`);
-
-    doc.pipe(res);
+    const DIAMOND_COLOR = "EF";
+    const DIAMOND_CLARITY = "VVS/VS";
+    const MONTH_YEAR = getMonthYear();
 
     const PAGE_WIDTH = 595.28;
     const PAGE_HEIGHT = 841.89;
-    const MARGIN = 40;
-    const CONTENT_WIDTH = PAGE_WIDTH - MARGIN * 2;
-    const ITEMS_PER_ROW = 2;
-    const ITEMS_PER_PAGE = 4;
+    const MARGIN_X = 45;
+    const MARGIN_Y = 0;
+    const CONTENT_WIDTH = PAGE_WIDTH - MARGIN_X * 2;
 
-    const GOLD_COLOR = "#B8960C";
-    const DARK_COLOR = "#1A1A1A";
-    const LIGHT_GRAY = "#F8F6F0";
-    const BORDER_COLOR = "#D4AF37";
-    const TEXT_GRAY = "#555555";
+    // Colors matching the sample PDF (clean, professional)
+    const BLACK = "#0D0D0D";
+    const DARK_GRAY = "#333333";
+    const MID_GRAY = "#666666";
+    const LIGHT_GRAY = "#AAAAAA";
+    const GOLD = "#B8960C";
+    const LIGHT_BG = "#FAFAF8";
+    const RULE_COLOR = "#CCCCCC";
 
-    const registerFonts = () => {
-      try {
-        doc.font("Helvetica");
-      } catch (_e) {
-        // fallback
-      }
+    const HEADER_H = 82;
+    const FOOTER_H = 38;
+    const BODY_H = PAGE_HEIGHT - HEADER_H - FOOTER_H;
+    const ROW_H = BODY_H / 2;
+    const COL_W = CONTENT_WIDTH / 2;
+    const CELL_PAD = 16;
+
+    const doc = new PDFDocument({ size: "A4", margin: 0, autoFirstPage: false, info: { Title: `Gemone Diamond ${catalogType} Catalog`, Author: "Gemone Diamond" } });
+
+    res.setHeader("Content-Type", "application/pdf");
+    res.setHeader("Content-Disposition", `attachment; filename="gemone-diamond-${catalogType.toLowerCase()}-catalog.pdf"`);
+    doc.pipe(res);
+
+    const totalPages = Math.ceil(items.length / 4);
+
+    const drawHeader = (pageNum: number) => {
+      // Left: Gemone Diamond + tagline
+      doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(16)
+        .text("Gemone Diamond", MARGIN_X, 24, { lineBreak: false });
+      doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8)
+        .text("CRAFTED WITH BRILLIANCE", MARGIN_X, 44, { lineBreak: false });
+
+      // Right: Collection title + page
+      const rightX = PAGE_WIDTH - MARGIN_X - 200;
+      doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(10)
+        .text("Gemone Diamond Collection", rightX, 24, { width: 200, align: "right", lineBreak: false });
+      doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8)
+        .text(`Page ${pageNum} of ${totalPages}`, rightX, 40, { width: 200, align: "right", lineBreak: false });
+
+      // Horizontal rule
+      doc.strokeColor(RULE_COLOR).lineWidth(0.5)
+        .moveTo(MARGIN_X, HEADER_H - 4).lineTo(PAGE_WIDTH - MARGIN_X, HEADER_H - 4).stroke();
     };
 
-    registerFonts();
+    const drawFooter = () => {
+      const footerY = PAGE_HEIGHT - FOOTER_H + 10;
+      doc.strokeColor(RULE_COLOR).lineWidth(0.5)
+        .moveTo(MARGIN_X, footerY - 8).lineTo(PAGE_WIDTH - MARGIN_X, footerY - 8).stroke();
 
-    const drawPageHeader = () => {
-      doc.rect(0, 0, PAGE_WIDTH, 70).fill(DARK_COLOR);
-      doc.fillColor("#D4AF37").fontSize(22).font("Helvetica-Bold").text("GEMONE DIAMOND", MARGIN, 18, { align: "center", width: CONTENT_WIDTH });
-      doc.fillColor("#C0A060").fontSize(9).font("Helvetica").text(`${catalogType} CATALOG  •  ${karat} GOLD  •  PROFESSIONAL PRICING`, MARGIN, 44, { align: "center", width: CONTENT_WIDTH });
-      doc.moveDown(0);
+      // Spaced out letterform
+      doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(7)
+        .text("G E M O N E   D I A M O N D   ·   F I N E   J E W E L L E R Y", MARGIN_X, footerY, { lineBreak: false });
+      doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(7)
+        .text(MONTH_YEAR, MARGIN_X, footerY, { width: CONTENT_WIDTH, align: "right", lineBreak: false });
     };
 
-    const drawPageFooter = (pageNum: number, totalPages: number) => {
-      const footerY = PAGE_HEIGHT - 35;
-      doc.rect(0, footerY - 5, PAGE_WIDTH, 40).fill(DARK_COLOR);
-      doc.fillColor("#888888").fontSize(7).font("Helvetica").text(
-        `© Gemone Diamond  •  Page ${pageNum} of ${totalPages}  •  All prices in USD  •  ${catalogType} Catalog  •  ${karat} Gold`,
-        MARGIN,
-        footerY + 3,
-        { align: "center", width: CONTENT_WIDTH }
-      );
+    const drawVerticalRule = (pageY: number) => {
+      // Center vertical divider
+      const midX = MARGIN_X + COL_W;
+      doc.strokeColor(RULE_COLOR).lineWidth(0.5)
+        .moveTo(midX, pageY).lineTo(midX, pageY + BODY_H).stroke();
     };
 
-    const drawDivider = (y: number) => {
-      doc.save();
-      doc.strokeColor(BORDER_COLOR).lineWidth(0.5).moveTo(MARGIN, y).lineTo(PAGE_WIDTH - MARGIN, y).stroke();
-      doc.restore();
+    const drawHorizontalRule = (pageY: number) => {
+      // Mid horizontal divider between rows
+      const midY = pageY + ROW_H;
+      doc.strokeColor(RULE_COLOR).lineWidth(0.5)
+        .moveTo(MARGIN_X, midY).lineTo(PAGE_WIDTH - MARGIN_X, midY).stroke();
     };
 
-    const totalPages = Math.ceil(items.length / ITEMS_PER_PAGE);
-    let pageNum = 0;
-    let isFirstPage = true;
+    const drawProduct = (item: JewelryItem, cellX: number, cellY: number, config: PricingConfig, ct: "B2B" | "B2C", showCharges: boolean) => {
+      const allPrices = calcAllKarats(item, config, ct);
+      const innerX = cellX + CELL_PAD;
+      const innerW = COL_W - CELL_PAD * 2;
 
-    for (let i = 0; i < items.length; i += ITEMS_PER_PAGE) {
-      if (!isFirstPage) {
-        doc.addPage();
-      }
-      isFirstPage = false;
-      pageNum++;
+      let y = cellY + CELL_PAD;
 
-      const pageItems = items.slice(i, i + ITEMS_PER_PAGE);
-      const HEADER_HEIGHT = 70;
-      const FOOTER_HEIGHT = 35;
-      const AVAILABLE_HEIGHT = PAGE_HEIGHT - HEADER_HEIGHT - FOOTER_HEIGHT - 20;
+      // Title
+      doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(11)
+        .text(item.title, innerX, y, { width: innerW, lineBreak: false, ellipsis: true });
+      y += 15;
 
-      const rowCount = Math.ceil(pageItems.length / ITEMS_PER_ROW);
-      const CELL_HEIGHT = AVAILABLE_HEIGHT / Math.max(rowCount, 1);
-      const CELL_WIDTH = CONTENT_WIDTH / ITEMS_PER_ROW;
+      // Subtitle "LAB GROWN DIAMOND"
+      const totalDiamond = item.centerDiamondWeight + item.sideDiamondWeight;
+      const subLabel = totalDiamond > 0 ? "LAB GROWN DIAMOND" : "FINE JEWELLERY";
+      doc.fillColor(MID_GRAY).font("Helvetica").fontSize(7.5)
+        .text(subLabel, innerX, y, { lineBreak: false });
+      y += 14;
 
-      drawPageHeader();
-      drawPageFooter(pageNum, totalPages);
+      // Small divider
+      doc.strokeColor(RULE_COLOR).lineWidth(0.3)
+        .moveTo(innerX, y).lineTo(innerX + innerW, y).stroke();
+      y += 6;
 
-      for (let j = 0; j < pageItems.length; j++) {
-        const item = pageItems[j];
-        const col = j % ITEMS_PER_ROW;
-        const row = Math.floor(j / ITEMS_PER_ROW);
+      // Image area
+      const availableH = ROW_H - CELL_PAD * 2;
+      const imgH = Math.round(availableH * 0.38);
+      const imgW = innerW;
 
-        const cellX = MARGIN + col * CELL_WIDTH;
-        const cellY = HEADER_HEIGHT + 10 + row * CELL_HEIGHT;
-        const cellPad = 8;
-
-        doc.save();
-        doc.rect(cellX + 4, cellY + 4, CELL_WIDTH - 8, CELL_HEIGHT - 10).fillColor(LIGHT_GRAY).fill();
-        doc.rect(cellX + 4, cellY + 4, CELL_WIDTH - 8, CELL_HEIGHT - 10).strokeColor(BORDER_COLOR).lineWidth(0.75).stroke();
-        doc.restore();
-
-        const innerX = cellX + cellPad + 4;
-        const innerWidth = CELL_WIDTH - cellPad * 2 - 8;
-
-        const titleBarHeight = 22;
-        doc.rect(cellX + 4, cellY + 4, CELL_WIDTH - 8, titleBarHeight).fill(DARK_COLOR);
-
-        const titleText = `#${item.srNo} – ${item.title}`;
-        doc.fillColor(GOLD_COLOR).fontSize(8).font("Helvetica-Bold").text(titleText, innerX, cellY + 10, {
-          width: innerWidth,
-          ellipsis: true,
-          lineBreak: false,
-        });
-
-        let contentY = cellY + 4 + titleBarHeight + 6;
-
-        const IMG_MAX_H = CELL_HEIGHT * 0.4;
-        const IMG_MAX_W = innerWidth;
-
-        if (item.imageBase64) {
-          try {
-            const imgBuf = Buffer.from(item.imageBase64, "base64");
-            const imgMime = item.imageMimeType || "image/jpeg";
-            const imgType = imgMime.includes("png") ? "png" : "jpeg";
-
-            doc.image(imgBuf, innerX, contentY, {
-              fit: [IMG_MAX_W, IMG_MAX_H],
-              align: "center",
-              valign: "center",
-            });
-            contentY += IMG_MAX_H + 6;
-          } catch (_e) {
-            doc.fillColor(TEXT_GRAY).fontSize(7).text("[Image unavailable]", innerX, contentY, { width: innerWidth });
-            contentY += 14;
-          }
-        } else {
-          doc.rect(innerX, contentY, IMG_MAX_W, IMG_MAX_H * 0.5).fillColor("#E8E0D0").fill();
-          doc.fillColor(TEXT_GRAY).fontSize(7).text("No Image", innerX, contentY + IMG_MAX_H * 0.25 - 5, { width: IMG_MAX_W, align: "center" });
-          contentY += IMG_MAX_H * 0.5 + 6;
+      if (item.imageBase64) {
+        try {
+          const imgBuf = Buffer.from(item.imageBase64, "base64");
+          // Center the image horizontally
+          doc.image(imgBuf, innerX, y, { fit: [imgW, imgH], align: "center", valign: "center" });
+        } catch (_e) {
+          doc.rect(innerX, y, imgW, imgH).fillColor("#F0EDE8").fill();
+          doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(7).text("Image", innerX, y + imgH / 2 - 4, { width: imgW, align: "center" });
         }
+      } else {
+        doc.rect(innerX, y, imgW, imgH).fillColor(LIGHT_BG).fill();
+        doc.rect(innerX, y, imgW, imgH).strokeColor(RULE_COLOR).lineWidth(0.3).stroke();
+        doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(7).text("No Image", innerX, y + imgH / 2 - 4, { width: imgW, align: "center" });
+      }
+      y += imgH + 8;
 
-        drawDivider(contentY);
-        contentY += 4;
+      // --- Details table ---
+      const detailLabelW = innerW * 0.52;
+      const detailValW = innerW * 0.48;
 
-        const prices = calcPrices(item, pricingConfig, karat, catalogType);
-        const lineH = 11;
-        const labelW = innerWidth * 0.62;
-        const valW = innerWidth * 0.38;
+      const detailRow = (label: string, value: string) => {
+        doc.fillColor(MID_GRAY).font("Helvetica").fontSize(7.5)
+          .text(label, innerX, y, { width: detailLabelW, lineBreak: false });
+        doc.fillColor(DARK_GRAY).font("Helvetica-Bold").fontSize(7.5)
+          .text(value, innerX + detailLabelW, y, { width: detailValW, align: "right", lineBreak: false });
+        y += 11;
+      };
 
-        const printRow = (label: string, value: string, bold = false) => {
-          if (contentY + lineH > cellY + CELL_HEIGHT - 12) return;
-          const font = bold ? "Helvetica-Bold" : "Helvetica";
-          doc.fillColor(TEXT_GRAY).fontSize(7).font(font).text(label, innerX, contentY, { width: labelW, lineBreak: false });
-          doc.fillColor(bold ? DARK_COLOR : TEXT_GRAY).fontSize(7).font("Helvetica-Bold").text(value, innerX + labelW, contentY, { width: valW, align: "right", lineBreak: false });
-          contentY += lineH;
+      // Metal weights
+      if (item.weight10k > 0 || item.weight14k > 0 || item.weight18k > 0) {
+        if (item.weight14k > 0) detailRow("Metal Weight", `${item.weight14k.toFixed(3)} g`);
+        else if (item.weight10k > 0) detailRow("Metal Weight", `${item.weight10k.toFixed(3)} g`);
+        else if (item.weight18k > 0) detailRow("Metal Weight", `${item.weight18k.toFixed(3)} g`);
+      }
+
+      if (totalDiamond > 0) {
+        detailRow("Diamond", `${totalDiamond.toFixed(2)} ct`);
+      }
+      detailRow("Color", DIAMOND_COLOR);
+      detailRow("Clarity", DIAMOND_CLARITY);
+
+      y += 2;
+      doc.strokeColor(RULE_COLOR).lineWidth(0.3)
+        .moveTo(innerX, y).lineTo(innerX + innerW, y).stroke();
+      y += 6;
+
+      // --- Itemized breakdown (if enabled, for B2B only show wastage, else hide) ---
+      if (showCharges) {
+        const p14 = allPrices["14K"];
+        const chargeRow = (label: string, value: string) => {
+          doc.fillColor(MID_GRAY).font("Helvetica").fontSize(7)
+            .text(label, innerX, y, { width: detailLabelW, lineBreak: false });
+          doc.fillColor(DARK_GRAY).font("Helvetica").fontSize(7)
+            .text(value, innerX + detailLabelW, y, { width: detailValW, align: "right", lineBreak: false });
+          y += 10;
         };
 
-        doc.font("Helvetica").fontSize(7);
+        chargeRow("Metal (14K)", fmt(p14.metalCalcUSD));
+        chargeRow("Diamond", fmt(p14.centerDiamondUSD + p14.sideDiamondUSD));
+        chargeRow("Labour", fmt(p14.labourUSD));
+        if (ct === "B2B" && p14.wastageUSD > 0) chargeRow("Wastage", fmt(p14.wastageUSD));
+        chargeRow(`Handling (${config.handlingPercent}%)`, fmt(p14.handlingUSD));
+        if (ct === "B2C") chargeRow(`Profit (${config.profitPercent}%)`, fmt(p14.profitUSD));
+        if (ct === "B2B" && config.adminChargePercent > 0) chargeRow(`Admin (${config.adminChargePercent}%)`, fmt(p14.adminUSD));
 
-        const weightForKarat = getWeightForKarat(item, karat);
-        printRow("Metal Weight:", `${weightForKarat.toFixed(3)}g`);
-        printRow("Center Diamond:", `${item.centerDiamondWeight.toFixed(3)} ct`);
-        printRow("Side Diamond:", `${item.sideDiamondWeight.toFixed(3)} ct`);
-
-        if (contentY + 4 < cellY + CELL_HEIGHT - 20) {
-          drawDivider(contentY + 2);
-          contentY += 6;
-        }
-
-        if (showItemizedCharges) {
-          printRow("Metal Calculation:", fmt(prices.metalCalcUSD));
-          if (catalogType === "B2C") {
-            printRow("Diamond Calculation:", fmt((prices.centerDiamondUSD || 0) + (prices.sideDiamondUSD || 0)));
-          } else {
-            printRow("Center Diamond:", fmt(prices.centerDiamondUSD));
-            printRow("Side Diamond:", fmt(prices.sideDiamondUSD));
-          }
-          printRow("Labour:", fmt(prices.labourUSD));
-          if (catalogType === "B2B" && prices.wastageUSD > 0) {
-            printRow("Wastage:", fmt(prices.wastageUSD));
-          }
-          printRow(`Handling (${pricingConfig.handlingPercent}%):`, fmt(prices.handlingUSD));
-          if (catalogType === "B2C") {
-            printRow(`Profit (${pricingConfig.profitPercent}%):`, fmt(prices.profitUSD));
-          }
-          if (catalogType === "B2B" && pricingConfig.adminChargePercent > 0) {
-            printRow(`Admin (${pricingConfig.adminChargePercent}%):`, fmt(prices.adminUSD));
-          }
-        }
-
-        if (contentY + 4 < cellY + CELL_HEIGHT - 16) {
-          drawDivider(contentY + 2);
-          contentY += 6;
-        }
-
-        const totalY = cellY + CELL_HEIGHT - 16;
-        if (totalY > contentY) {
-          doc.rect(innerX - 2, totalY - 2, innerWidth + 4, 14).fill(DARK_COLOR);
-          doc.fillColor(GOLD_COLOR).fontSize(8).font("Helvetica-Bold")
-            .text("TOTAL PRICE:", innerX, totalY + 2, { width: labelW, lineBreak: false });
-          doc.fillColor(GOLD_COLOR).fontSize(8).font("Helvetica-Bold")
-            .text(fmt(prices.total), innerX + labelW, totalY + 2, { width: valW, align: "right", lineBreak: false });
-        }
+        y += 2;
+        doc.strokeColor(RULE_COLOR).lineWidth(0.3)
+          .moveTo(innerX, y).lineTo(innerX + innerW, y).stroke();
+        y += 6;
       }
+
+      // --- Karat prices ---
+      const karats: KaratKey[] = ["10K", "14K", "18K"];
+      const karatLabelW = innerW / 3;
+
+      // Labels row
+      karats.forEach((k, idx) => {
+        const kx = innerX + idx * karatLabelW;
+        doc.fillColor(MID_GRAY).font("Helvetica").fontSize(7)
+          .text(k + " Gold", kx, y, { width: karatLabelW, align: "center", lineBreak: false });
+      });
+      y += 11;
+
+      // Prices row
+      karats.forEach((k, idx) => {
+        const kx = innerX + idx * karatLabelW;
+        doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(9)
+          .text(fmt(allPrices[k].total), kx, y, { width: karatLabelW, align: "center", lineBreak: false });
+      });
+    };
+
+    let pageNum = 0;
+    for (let i = 0; i < items.length; i += 4) {
+      pageNum++;
+      doc.addPage();
+
+      drawHeader(pageNum);
+      drawFooter();
+      drawVerticalRule(HEADER_H + MARGIN_Y);
+      drawHorizontalRule(HEADER_H + MARGIN_Y);
+
+      const pageItems = items.slice(i, i + 4);
+      const positions = [
+        { x: MARGIN_X, y: HEADER_H + MARGIN_Y },
+        { x: MARGIN_X + COL_W, y: HEADER_H + MARGIN_Y },
+        { x: MARGIN_X, y: HEADER_H + MARGIN_Y + ROW_H },
+        { x: MARGIN_X + COL_W, y: HEADER_H + MARGIN_Y + ROW_H },
+      ];
+
+      pageItems.forEach((item, idx) => {
+        drawProduct(item, positions[idx].x, positions[idx].y, pricingConfig, catalogType, showItemizedCharges);
+      });
     }
 
     doc.end();

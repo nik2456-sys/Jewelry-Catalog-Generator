@@ -93,7 +93,7 @@ export default function Home() {
                   ) : (
                     <>
                       <FileDown className="w-5 h-5" />
-                      Generate {formState.karat} {formState.catalogType} Catalog
+                      Generate {formState.catalogType} Catalog (10K · 14K · 18K)
                       <Sparkles className="w-4 h-4 ml-1 opacity-70" />
                     </>
                   )}
