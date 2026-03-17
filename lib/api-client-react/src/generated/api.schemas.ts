@@ -33,12 +33,10 @@ export interface ParsedExcelData {
 }
 
 export interface PricingConfig {
-  /** Gold price per gram in INR */
-  goldPriceINR: number;
+  /** Gold price per gram in USD */
+  goldPriceUSD: number;
   /** Diamond price per carat in USD */
   diamondPriceUSD: number;
-  /** USD to INR conversion rate */
-  usdToInrRate: number;
   /** Labour charge per gram of metal in USD */
   labourPerGramUSD: number;
   /** Fixed wastage amount in USD (B2B only) */

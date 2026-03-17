@@ -1,4 +1,5 @@
-import { Settings, Calculator, Percent, DollarSign, Coins, Gem } from "lucide-react";
+import type React from "react";
+import { Settings, Calculator, Percent, Coins, Gem } from "lucide-react";
 import { motion } from "framer-motion";
 import type { CatalogFormState } from "@/hooks/use-catalog";
 import { cn } from "@/lib/utils";
@@ -82,10 +83,10 @@ export function ConfigPanel({ formState, updatePricing, updateField }: ConfigPan
         {/* Core Pricing */}
         <div className="lg:col-span-9 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
           <InputGroup
-            label="Gold Price/g (INR)"
-            value={formState.pricingConfig.goldPriceINR}
-            onChange={(v) => updatePricing("goldPriceINR", v)}
-            prefix="₹"
+            label="Gold Price/g (USD)"
+            value={formState.pricingConfig.goldPriceUSD}
+            onChange={(v) => updatePricing("goldPriceUSD", v)}
+            prefix="$"
             icon={Coins}
           />
           <InputGroup
@@ -94,13 +95,6 @@ export function ConfigPanel({ formState, updatePricing, updateField }: ConfigPan
             onChange={(v) => updatePricing("diamondPriceUSD", v)}
             prefix="$"
             icon={Gem}
-          />
-          <InputGroup
-            label="USD to INR Rate"
-            value={formState.pricingConfig.usdToInrRate}
-            onChange={(v) => updatePricing("usdToInrRate", v)}
-            prefix="₹"
-            icon={DollarSign}
           />
           <InputGroup
             label="Labour per gram (USD)"

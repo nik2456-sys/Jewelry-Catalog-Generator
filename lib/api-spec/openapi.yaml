@@ -142,15 +142,12 @@ components:
     PricingConfig:
       type: object
       properties:
-        goldPriceINR:
+        goldPriceUSD:
           type: number
-          description: Gold price per gram in INR
+          description: Gold price per gram in USD
         diamondPriceUSD:
           type: number
           description: Diamond price per carat in USD
-        usdToInrRate:
-          type: number
-          description: USD to INR conversion rate
         labourPerGramUSD:
           type: number
           description: Labour charge per gram of metal in USD
@@ -167,9 +164,8 @@ components:
           type: number
           description: Admin charge percentage (B2B only)
       required:
-        - goldPriceINR
+        - goldPriceUSD
         - diamondPriceUSD
-        - usdToInrRate
         - labourPerGramUSD
         - wastageFixedUSD
         - handlingPercent

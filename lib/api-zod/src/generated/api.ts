@@ -69,9 +69,8 @@ export const GenerateCatalogBody = zod.object({
     }),
   ),
   pricingConfig: zod.object({
-    goldPriceINR: zod.number().describe("Gold price per gram in INR"),
+    goldPriceUSD: zod.number().describe("Gold price per gram in USD"),
     diamondPriceUSD: zod.number().describe("Diamond price per carat in USD"),
-    usdToInrRate: zod.number().describe("USD to INR conversion rate"),
     labourPerGramUSD: zod
       .number()
       .describe("Labour charge per gram of metal in USD"),

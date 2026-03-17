@@ -19,9 +19,8 @@ interface JewelryItem {
 }
 
 interface PricingConfig {
-  goldPriceINR: number;
+  goldPriceUSD: number;
   diamondPriceUSD: number;
-  usdToInrRate: number;
   labourPerGramUSD: number;
   wastageFixedUSD: number;
   handlingPercent: number;
@@ -63,8 +62,8 @@ function calcPricesForKarat(item: JewelryItem, config: PricingConfig, karat: Kar
   const factor = KARAT_FACTORS[karat];
   const weight = getWeightForKarat(item, karat);
 
-  const metalCalcINR = (factor * config.goldPriceINR * weight) / 75;
-  const metalCalcUSD = metalCalcINR / config.usdToInrRate;
+  // Gold price is now in USD directly: formula (factor * goldPriceUSD * weight) / 75
+  const metalCalcUSD = (factor * config.goldPriceUSD * weight) / 75;
 
   const centerDiamondUSD = item.centerDiamondWeight * config.diamondPriceUSD;
   const sideDiamondUSD = item.sideDiamondWeight * config.diamondPriceUSD;

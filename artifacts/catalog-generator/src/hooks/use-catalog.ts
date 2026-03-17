@@ -19,9 +19,8 @@ export function useCatalog() {
 
   const [formState, setFormState] = useState<CatalogFormState>({
     pricingConfig: {
-      goldPriceINR: 16500,
+      goldPriceUSD: 200,
       diamondPriceUSD: 200,
-      usdToInrRate: 83,
       labourPerGramUSD: 20,
       wastageFixedUSD: 20,
       handlingPercent: 5,
