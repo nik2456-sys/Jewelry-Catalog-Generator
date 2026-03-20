@@ -98,6 +98,9 @@ components:
       properties:
         srNo:
           type: integer
+        skuNo:
+          type: string
+          description: SKU number from the Excel file
         title:
           type: string
         weight10k:
@@ -121,6 +124,7 @@ components:
           description: CDN URL for right-angle product image
       required:
         - srNo
+        - skuNo
         - title
         - weight10k
         - weight14k

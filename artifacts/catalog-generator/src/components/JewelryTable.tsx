@@ -75,6 +75,7 @@ export function JewelryTable({ data, removedSrNos, onToggleRemove }: JewelryTabl
             <tr>
               <th className="px-4 py-4 font-bold w-12">In PDF</th>
               <th className="px-4 py-4 font-bold">Sr</th>
+              <th className="px-4 py-4 font-bold">SKU No</th>
               <th className="px-4 py-4 font-bold text-center">Images</th>
               <th className="px-4 py-4 font-bold">Title</th>
               <th className="px-4 py-4 font-bold text-right">10K (g)</th>
@@ -118,6 +119,9 @@ export function JewelryTable({ data, removedSrNos, onToggleRemove }: JewelryTabl
                     </td>
                     <td className="px-4 py-3 font-medium text-muted-foreground text-center">
                       {item.srNo}
+                    </td>
+                    <td className="px-4 py-3 font-mono text-xs text-primary font-medium">
+                      {item.skuNo || "-"}
                     </td>
                     <td className="px-4 py-3">
                       <div className="flex items-center gap-2 justify-center">

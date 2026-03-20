@@ -15,6 +15,8 @@ export interface ErrorResponse {
 
 export interface JewelryItem {
   srNo: number;
+  /** SKU number from the Excel file */
+  skuNo: string;
   title: string;
   weight10k: number;
   weight14k: number;
