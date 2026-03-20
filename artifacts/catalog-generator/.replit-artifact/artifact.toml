@@ -10,7 +10,7 @@ name = "react-vite"
 version = "1.0.0"
 
 [[services]]
-localPort = 25683
+localPort = 5173
 name = "web"
 paths = ["/"]
 
@@ -18,7 +18,7 @@ paths = ["/"]
 run = "pnpm --filter @workspace/catalog-generator run dev"
 
 [services.env]
-PORT = "25683"
+PORT = "5173"
 BASE_PATH = "/"
 
 [services.production]
