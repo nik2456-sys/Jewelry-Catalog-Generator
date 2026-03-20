@@ -14,8 +14,10 @@ export interface JewelryItem {
   weight18k: number;
   centerDiamondWeight: number;
   sideDiamondWeight: number;
-  /** Base64 encoded image from the Excel file */
-  imageBase64?: string;
-  /** MIME type of the image (e.g. image/jpeg) */
-  imageMimeType?: string;
+  /** CDN URL for left-angle product image */
+  imageLeft?: string;
+  /** CDN URL for center/main product image */
+  imageCenter?: string;
+  /** CDN URL for right-angle product image */
+  imageRight?: string;
 }

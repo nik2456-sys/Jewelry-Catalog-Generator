@@ -2,8 +2,6 @@ import { Router, type IRouter } from "express";
 import multer from "multer";
 import * as XLSX from "xlsx";
 import PDFDocument from "pdfkit";
-import JSZip from "jszip";
-import { XMLParser } from "fast-xml-parser";
 import { fileURLToPath } from "url";
 import path from "path";
 
@@ -21,15 +19,16 @@ interface JewelryItem {
   weight18k: number;
   centerDiamondWeight: number;
   sideDiamondWeight: number;
-  imageBase64?: string;
-  imageMimeType?: string;
+  imageLeft?: string;
+  imageCenter?: string;
+  imageRight?: string;
 }
 
 interface PricingConfig {
   goldPriceUSD: number;
   diamondPriceUSD: number;
   labourPerGramUSD: number;
-  wastageFixedUSD: number;
+  wastagePerGramUSD: number;
   handlingPercent: number;
   profitPercent: number;
   adminChargePercent: number;
@@ -73,7 +72,7 @@ function calcPricesForKarat(item: JewelryItem, config: PricingConfig, karat: Kar
   const labourUSD = config.labourPerGramUSD * weight;
 
   if (catalogType === "B2B") {
-    const wastageUSD = config.wastageFixedUSD;
+    const wastageUSD = config.wastagePerGramUSD * weight;
     const subtotal = metalCalcUSD + centerDiamondUSD + sideDiamondUSD + labourUSD;
     const handlingUSD = subtotal * (config.handlingPercent / 100);
     const adminUSD = subtotal * (config.adminChargePercent / 100);
@@ -106,105 +105,43 @@ function getMonthYear(): string {
   return now.toLocaleDateString("en-US", { month: "long", year: "numeric" }).toUpperCase();
 }
 
-async function extractImagesFromXlsx(buffer: Buffer): Promise<Record<number, { data: Buffer; ext: string }>> {
-  const imageMap: Record<number, { data: Buffer; ext: string }> = {};
+// Fetch an image from a CDN URL into a Buffer
+async function fetchImageBuffer(url: string): Promise<Buffer | null> {
   try {
-    const zip = await JSZip.loadAsync(buffer);
-    const xmlParser = new XMLParser({ ignoreAttributes: false, attributeNamePrefix: "@_", isArray: () => false });
-
-    const drawingFiles = Object.keys(zip.files).filter(f => f.match(/xl\/drawings\/drawing\d+\.xml$/));
-
-    for (const drawingPath of drawingFiles) {
-      const drawingIndex = drawingPath.match(/drawing(\d+)\.xml$/)?.[1] || "1";
-      const relsPath = `xl/drawings/_rels/drawing${drawingIndex}.xml.rels`;
-      const relsFile = zip.file(relsPath);
-      const drawingFile = zip.file(drawingPath);
-      if (!relsFile || !drawingFile) continue;
-
-      const relsContent = await relsFile.async("text");
-      const relsDoc = xmlParser.parse(relsContent);
-      const rIdToPath: Record<string, string> = {};
-      const rels = relsDoc?.Relationships?.Relationship;
-      const relArray = Array.isArray(rels) ? rels : rels ? [rels] : [];
-      for (const rel of relArray) {
-        const id = rel["@_Id"];
-        const target = String(rel["@_Target"] || "");
-        if (id && target) {
-          const resolved = target.startsWith("../") ? "xl/" + target.slice(3) : target;
-          rIdToPath[id] = resolved;
-        }
-      }
-
-      const drawingContent = await drawingFile.async("text");
-      const drawingDoc = xmlParser.parse(drawingContent);
-      const wsDr = drawingDoc["xdr:wsDr"] || drawingDoc["wsDr"] || {};
-
-      const extractAnchors = (key: string): unknown[] => {
-        const v = wsDr[key];
-        if (!v) return [];
-        return Array.isArray(v) ? v : [v];
-      };
-
-      const anchors = [...extractAnchors("xdr:twoCellAnchor"), ...extractAnchors("xdr:oneCellAnchor")];
-
-      for (const anchor of anchors as Record<string, unknown>[]) {
-        const fromSection = anchor["xdr:from"] as Record<string, unknown> | undefined;
-        const rowRaw = fromSection?.["xdr:row"];
-        const row = rowRaw !== undefined ? Number(rowRaw) : undefined;
-        const pic = anchor["xdr:pic"] as Record<string, unknown> | undefined;
-        const blipFill = pic?.["xdr:blipFill"] as Record<string, unknown> | undefined;
-        const blip = blipFill?.["a:blip"] as Record<string, unknown> | undefined;
-        const rId = blip?.["@_r:embed"] as string | undefined;
-
-        if (row !== undefined && rId && rIdToPath[rId]) {
-          const imgFile = zip.file(rIdToPath[rId]);
-          if (imgFile) {
-            const data = await imgFile.async("nodebuffer");
-            const ext = rIdToPath[rId].split(".").pop()?.toLowerCase() || "png";
-            imageMap[row] = { data, ext };
-          }
-        }
-      }
-    }
-  } catch (err) {
-    console.error("Image extraction error:", err);
+    const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
+    if (!response.ok) return null;
+    const ab = await response.arrayBuffer();
+    return Buffer.from(ab);
+  } catch {
+    return null;
   }
-  return imageMap;
 }
 
-// ─── Sample Excel download ───────────────────────────────────────────────────
+// ─── Sample Excel ─────────────────────────────────────────────────────────────
 router.get("/sample", (_req, res) => {
-  const wb = XLSX.utils.book_new();
   const headers = [
-    "Sr No",
-    "Title",
-    "10K Weight",
-    "14K Weight",
-    "18K Weight",
-    "Center Diamond Weight",
-    "Side Diamond Weight",
+    "Sr No", "Title",
+    "10K Weight", "14K Weight", "18K Weight",
+    "Center Diamond Weight", "Side Diamond Weight",
+    "Image 1 (Left)", "Image 2 (Center)", "Image 3 (Right)",
   ];
   const sampleRows = [
-    [1, "Solitaire Diamond Ring", 2.500, 2.750, 3.000, 0.50, 0.25],
-    [2, "Diamond Stud Earrings", 1.800, 2.000, 2.200, 0.30, 0.10],
-    [3, "Tennis Bracelet", 5.200, 5.800, 6.500, 1.20, 0.60],
-    [4, "Diamond Pendant Necklace", 1.200, 1.350, 1.500, 0.40, 0.15],
-    [5, "Eternity Band Ring", 3.100, 3.450, 3.800, 0.00, 0.80],
+    [1, "Solitaire Diamond Ring", 2.500, 2.750, 3.000, 0.50, 0.25,
+      "https://example.com/ring-left.jpg", "https://example.com/ring-center.jpg", "https://example.com/ring-right.jpg"],
+    [2, "Diamond Stud Earrings", 1.800, 2.000, 2.200, 0.30, 0.10,
+      "https://example.com/earring-left.jpg", "https://example.com/earring-center.jpg", "https://example.com/earring-right.jpg"],
+    [3, "Tennis Bracelet", 5.200, 5.800, 6.500, 1.20, 0.60,
+      "https://example.com/bracelet-left.jpg", "https://example.com/bracelet-center.jpg", "https://example.com/bracelet-right.jpg"],
+    [4, "Diamond Pendant Necklace", 1.200, 1.350, 1.500, 0.40, 0.15, "", "", ""],
+    [5, "Eternity Band Ring", 3.100, 3.450, 3.800, 0.00, 0.80, "", "", ""],
   ];
 
+  const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleRows]);
-
-  // Column widths
   ws["!cols"] = [
-    { wch: 8 },
-    { wch: 28 },
-    { wch: 12 },
-    { wch: 12 },
-    { wch: 12 },
-    { wch: 22 },
-    { wch: 20 },
+    { wch: 8 }, { wch: 28 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
+    { wch: 22 }, { wch: 20 }, { wch: 35 }, { wch: 35 }, { wch: 35 },
   ];
-
   XLSX.utils.book_append_sheet(wb, ws, "Jewelry Catalog");
   const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
 
@@ -213,7 +150,7 @@ router.get("/sample", (_req, res) => {
   res.send(buf);
 });
 
-// ─── Upload ──────────────────────────────────────────────────────────────────
+// ─── Upload ───────────────────────────────────────────────────────────────────
 router.post("/upload", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) { res.status(400).json({ error: "No file uploaded" }); return; }
@@ -222,7 +159,6 @@ router.post("/upload", upload.single("file"), async (req, res) => {
     const sheetName = workbook.SheetNames[0];
     const sheet = workbook.Sheets[sheetName];
     const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { header: 1, raw: false });
-    const imageMap = await extractImagesFromXlsx(req.file.buffer);
 
     const headerRow = rows[0] as string[];
     const headerMap: Record<string, number> = {};
@@ -244,6 +180,9 @@ router.post("/upload", upload.single("file"), async (req, res) => {
     const w18kCol = findCol(["18k"]);
     const centerCol = findCol(["center diamond", "center"]);
     const sideCol = findCol(["side diamond", "side"]);
+    const imgLeftCol = findCol(["image 1", "img 1", "left"]);
+    const imgCenterCol = findCol(["image 2", "img 2", "center image", "main"]);
+    const imgRightCol = findCol(["image 3", "img 3", "right"]);
 
     const items: JewelryItem[] = [];
 
@@ -258,23 +197,26 @@ router.post("/upload", upload.single("file"), async (req, res) => {
         return parseFloat(String(v).replace(/[^0-9.-]/g, "")) || 0;
       };
 
+      const getStr = (idx: number): string | undefined => {
+        if (idx < 0 || idx >= row.length) return undefined;
+        const v = String(row[idx] || "").trim();
+        return v.length > 0 ? v : undefined;
+      };
+
       const srNo = srNoCol >= 0 ? parseInt(String(row[srNoCol])) || i : i;
       const title = titleCol >= 0 ? String(row[titleCol] || `Item ${srNo}`) : `Item ${srNo}`;
       if (!title || title.trim() === "") continue;
 
-      const imgEntry = imageMap[i];
-      let imageBase64: string | undefined;
-      let imageMimeType: string | undefined;
-      if (imgEntry) {
-        imageBase64 = imgEntry.data.toString("base64");
-        imageMimeType = imgEntry.ext === "jpg" || imgEntry.ext === "jpeg" ? "image/jpeg" : `image/${imgEntry.ext}`;
-      }
-
       items.push({
         srNo, title,
-        weight10k: parseNum(w10kCol), weight14k: parseNum(w14kCol), weight18k: parseNum(w18kCol),
-        centerDiamondWeight: parseNum(centerCol), sideDiamondWeight: parseNum(sideCol),
-        imageBase64, imageMimeType,
+        weight10k: parseNum(w10kCol),
+        weight14k: parseNum(w14kCol),
+        weight18k: parseNum(w18kCol),
+        centerDiamondWeight: parseNum(centerCol),
+        sideDiamondWeight: parseNum(sideCol),
+        imageLeft: getStr(imgLeftCol),
+        imageCenter: getStr(imgCenterCol),
+        imageRight: getStr(imgRightCol),
       });
     }
 
@@ -296,8 +238,23 @@ router.post("/generate", async (req, res) => {
       return;
     }
 
+    // Pre-fetch all CDN images
+    const allUrls = new Set<string>();
+    for (const item of items) {
+      if (item.imageLeft) allUrls.add(item.imageLeft);
+      if (item.imageCenter) allUrls.add(item.imageCenter);
+      if (item.imageRight) allUrls.add(item.imageRight);
+    }
+    const fetchedImages = new Map<string, Buffer>();
+    await Promise.all(
+      Array.from(allUrls).map(async (url) => {
+        const buf = await fetchImageBuffer(url);
+        if (buf) fetchedImages.set(url, buf);
+      })
+    );
+
     const DIAMOND_COLOR = "EF";
-    const DIAMOND_CLARITY = "VVS/VS";
+    const DIAMOND_CLARITY = "VS Clarity";
     const MONTH_YEAR = getMonthYear();
     const YEAR = new Date().getFullYear();
 
@@ -320,7 +277,7 @@ router.post("/generate", async (req, res) => {
     const BODY_H = PAGE_H - HEADER_H - FOOTER_H;
     const ROW_H = BODY_H / 2;
     const COL_W = CW / 2;
-    const CELL_PAD = 20;
+    const CELL_PAD = 18;
 
     const doc = new PDFDocument({
       size: [PAGE_W, PAGE_H],
@@ -329,7 +286,6 @@ router.post("/generate", async (req, res) => {
       info: { Title: `Gemone Diamond ${catalogType} Catalog`, Author: "Gemone Diamond" },
     });
 
-    // Register Playfair Display
     doc.registerFont("Playfair", PLAYFAIR_FONT);
 
     res.setHeader("Content-Type", "application/pdf");
@@ -338,111 +294,177 @@ router.post("/generate", async (req, res) => {
 
     const totalPages = Math.ceil(items.length / 4);
 
-    // ── COVER PAGE ─────────────────────────────────────────────────────────────
+    // ══ COVER PAGE ═══════════════════════════════════════════════════════════
     doc.addPage();
 
     const cx = PAGE_W / 2;
 
-    // Top thin gold rule pair
+    // Top rule pair
     doc.strokeColor(GOLD).lineWidth(1.2).moveTo(MX, 60).lineTo(PAGE_W - MX, 60).stroke();
     doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, 64).lineTo(PAGE_W - MX, 64).stroke();
 
-    // "EST." tag
-    doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(8)
-      .text(`EST. ${YEAR}  ·  FINE JEWELLERY`, 0, 74, { width: PAGE_W, align: "center", lineBreak: false });
-
-    // Decorative diamond outline (geometric)
-    const dcx = cx;
-    const dcy = 210;
-    const dw = 90;
-    const dh = 55;
-    doc.strokeColor(GOLD).lineWidth(1)
-      .moveTo(dcx, dcy - dh)
-      .lineTo(dcx + dw, dcy)
-      .lineTo(dcx, dcy + dh)
-      .lineTo(dcx - dw, dcy)
-      .closePath()
-      .stroke();
-    // Inner smaller diamond
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4)
-      .moveTo(dcx, dcy - dh + 12)
-      .lineTo(dcx + dw - 18, dcy)
-      .lineTo(dcx, dcy + dh - 12)
-      .lineTo(dcx - dw + 18, dcy)
-      .closePath()
-      .stroke();
-
-    // "GEMONE" — large Playfair, spaced, gold
+    // ── Brand name block ──────────────────────────────────────────────────────
     doc.fillColor(GOLD).font("Playfair").fontSize(72)
-      .text("GEMONE", 0, 290, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 12 });
+      .text("GEMONE", 0, 100, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 12 });
 
-    // "DIAMOND" — large Playfair, spaced, black
     doc.fillColor(BLACK).font("Playfair").fontSize(52)
-      .text("DIAMOND", 0, 372, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 8 });
+      .text("DIAMOND", 0, 182, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 8 });
 
-    // Thin gold rule
-    doc.strokeColor(GOLD).lineWidth(0.8).moveTo(cx - 100, 442).lineTo(cx + 100, 442).stroke();
+    // Rule + dot
+    doc.strokeColor(GOLD).lineWidth(0.8)
+      .moveTo(cx - 100, 252).lineTo(cx + 100, 252).stroke();
+    doc.fillColor(GOLD).circle(cx, 252, 3).fill();
 
-    // Diamond dot in center of rule
-    doc.fillColor(GOLD).circle(cx, 442, 3).fill();
-
-    // "CRAFTED WITH BRILLIANCE"
+    // Slogan "ETERNAL LUXURY"
     doc.fillColor(GOLD_LIGHT).font("Playfair").fontSize(14)
-      .text("CRAFTED WITH BRILLIANCE", 0, 456, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 3 });
+      .text("ETERNAL LUXURY", 0, 268, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 3 });
 
-    // Thin rule below tagline
-    doc.strokeColor(RULE_COLOR).lineWidth(0.4).moveTo(MX + 60, 484).lineTo(PAGE_W - MX - 60, 484).stroke();
+    // Thin divider
+    doc.strokeColor(RULE_COLOR).lineWidth(0.4)
+      .moveTo(MX + 60, 296).lineTo(PAGE_W - MX - 60, 296).stroke();
 
     // Catalog type badge
     const badgeLabel = catalogType === "B2B" ? "B2B WHOLESALE COLLECTION" : "B2C RETAIL COLLECTION";
     doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(11)
-      .text(badgeLabel, 0, 500, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 4 });
+      .text(badgeLabel, 0, 312, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 4 });
 
-    // Item count
     doc.fillColor(MID_GRAY).font("Helvetica").fontSize(9)
-      .text(`${items.length} PIECES  ·  ALL KARATS  ·  EF COLOR  ·  VVS/VS CLARITY`, 0, 520, { width: PAGE_W, align: "center", lineBreak: false });
+      .text(
+        `${items.length} PIECES  ·  ALL KARATS  ·  EF COLOR  ·  VS CLARITY`,
+        0, 332, { width: PAGE_W, align: "center", lineBreak: false }
+      );
 
-    // Mid decorative rule set
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, 548).lineTo(PAGE_W - MX, 548).stroke();
-    doc.strokeColor(GOLD).lineWidth(1.0).moveTo(MX, 551).lineTo(PAGE_W - MX, 551).stroke();
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, 554).lineTo(PAGE_W - MX, 554).stroke();
+    // Triple rule
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, 360).lineTo(PAGE_W - MX, 360).stroke();
+    doc.strokeColor(GOLD).lineWidth(1.0).moveTo(MX, 363).lineTo(PAGE_W - MX, 363).stroke();
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, 366).lineTo(PAGE_W - MX, 366).stroke();
 
-    // Karat row — three columns
-    const karatY = 590;
+    // Karat row
+    const karatY = 396;
     const karatCols = [
-      { k: "10K", factor: "0.45", x: cx - 240 },
-      { k: "14K", factor: "0.65", x: cx - 40 },
-      { k: "18K", factor: "0.75", x: cx + 160 },
+      { k: "10K", x: cx - 240 },
+      { k: "14K", x: cx - 40 },
+      { k: "18K", x: cx + 160 },
     ];
     for (const col of karatCols) {
       doc.fillColor(GOLD).font("Playfair").fontSize(22)
         .text(col.k, col.x, karatY, { width: 80, align: "center", lineBreak: false });
       doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(8)
-        .text("GOLD", col.x, karatY + 26, { width: 80, align: "center", lineBreak: false });
+        .text("GOLD", col.x, karatY + 28, { width: 80, align: "center", lineBreak: false });
     }
-
-    // Vertical micro-rules between karats
     doc.strokeColor(RULE_COLOR).lineWidth(0.5)
       .moveTo(cx - 80, karatY - 6).lineTo(cx - 80, karatY + 44).stroke();
     doc.strokeColor(RULE_COLOR).lineWidth(0.5)
       .moveTo(cx + 120, karatY - 6).lineTo(cx + 120, karatY + 44).stroke();
 
-    // Bottom rule pair
+    // Triple rule below karats
+    const afterKaratY = 462;
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, afterKaratY).lineTo(PAGE_W - MX, afterKaratY).stroke();
+    doc.strokeColor(GOLD).lineWidth(1.0).moveTo(MX, afterKaratY + 3).lineTo(PAGE_W - MX, afterKaratY + 3).stroke();
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, afterKaratY + 6).lineTo(PAGE_W - MX, afterKaratY + 6).stroke();
+
+    // ── Core Values section ────────────────────────────────────────────────────
+    // 4 value pillars with drawn icons
+    const valuesY = 492;
+    doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(7.5)
+      .text("O U R   C O R E   V A L U E S", 0, valuesY, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 2 });
+
+    const iconY = valuesY + 22;
+    const iconR = 30;  // icon circle radius
+    // 4 icons evenly spaced
+    const iconXs = [cx - 345, cx - 115, cx + 115, cx + 345];
+    const iconLabelW = 120;
+
+    // Helper: draw icon circle background
+    const iconCircle = (x: number, y: number) => {
+      doc.circle(x, y, iconR).strokeColor(GOLD).lineWidth(0.8).stroke();
+    };
+
+    // Icon 1: Globe (worldwide shipping)
+    iconCircle(iconXs[0], iconY + iconR);
+    // Globe: outer circle already drawn; add horizontal ellipse + vertical line
+    doc.ellipse(iconXs[0], iconY + iconR, iconR * 0.6, iconR * 0.22).strokeColor(GOLD_LIGHT).lineWidth(0.6).stroke();
+    doc.moveTo(iconXs[0], iconY + iconR - iconR * 0.85).lineTo(iconXs[0], iconY + iconR + iconR * 0.85)
+      .strokeColor(GOLD_LIGHT).lineWidth(0.6).stroke();
+    doc.moveTo(iconXs[0] - iconR * 0.85, iconY + iconR).lineTo(iconXs[0] + iconR * 0.85, iconY + iconR)
+      .strokeColor(GOLD_LIGHT).lineWidth(0.6).stroke();
+
+    // Icon 2: Star (satisfied clients)
+    iconCircle(iconXs[1], iconY + iconR);
+    const starCx = iconXs[1];
+    const starCy = iconY + iconR;
+    const outerR = 16;
+    const innerR = 7;
+    const starPath: number[][] = [];
+    for (let si = 0; si < 10; si++) {
+      const angle = (si * Math.PI) / 5 - Math.PI / 2;
+      const r = si % 2 === 0 ? outerR : innerR;
+      starPath.push([starCx + r * Math.cos(angle), starCy + r * Math.sin(angle)]);
+    }
+    doc.moveTo(starPath[0][0], starPath[0][1]);
+    for (let si = 1; si < starPath.length; si++) doc.lineTo(starPath[si][0], starPath[si][1]);
+    doc.closePath().fillColor(GOLD_LIGHT).fill();
+
+    // Icon 3: Diamond (50+ years)
+    iconCircle(iconXs[2], iconY + iconR);
+    const gemCx = iconXs[2];
+    const gemCy = iconY + iconR;
+    doc.moveTo(gemCx, gemCy - 18)
+      .lineTo(gemCx + 18, gemCy)
+      .lineTo(gemCx, gemCy + 18)
+      .lineTo(gemCx - 18, gemCy)
+      .closePath().fillColor(GOLD_LIGHT).fill();
+
+    // Icon 4: Shield with checkmark (promise)
+    iconCircle(iconXs[3], iconY + iconR);
+    const shCx = iconXs[3];
+    const shCy = iconY + iconR - 2;
+    const shW = 20; const shH = 24;
+    // Shield: top rect + bottom point
+    doc.moveTo(shCx - shW, shCy - shH / 2)
+      .lineTo(shCx + shW, shCy - shH / 2)
+      .lineTo(shCx + shW, shCy + 4)
+      .lineTo(shCx, shCy + shH / 2 + 4)
+      .lineTo(shCx - shW, shCy + 4)
+      .closePath().strokeColor(GOLD_LIGHT).lineWidth(1.2).stroke();
+    // Checkmark inside shield
+    doc.moveTo(shCx - 9, shCy + 1)
+      .lineTo(shCx - 2, shCy + 8)
+      .lineTo(shCx + 10, shCy - 8)
+      .strokeColor(GOLD).lineWidth(2).stroke();
+
+    // Labels below icons
+    const labelY = iconY + iconR * 2 + 10;
+    const valueLines = [
+      ["Worldwide", "Shipping"],
+      ["20,000+", "Happy Clients"],
+      ["50+ Years", "Experience"],
+      ["Our Promise", "Auth · Commit · Quality"],
+    ];
+
+    iconXs.forEach((ix, vi) => {
+      const lx = ix - iconLabelW / 2;
+      doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(8)
+        .text(valueLines[vi][0], lx, labelY, { width: iconLabelW, align: "center", lineBreak: false });
+      doc.fillColor(MID_GRAY).font("Helvetica").fontSize(7)
+        .text(valueLines[vi][1], lx, labelY + 12, { width: iconLabelW, align: "center", lineBreak: false });
+    });
+
+    // ── Bottom rules + footer ─────────────────────────────────────────────────
     doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, PAGE_H - 80).lineTo(PAGE_W - MX, PAGE_H - 80).stroke();
     doc.strokeColor(GOLD).lineWidth(1.2).moveTo(MX, PAGE_H - 76).lineTo(PAGE_W - MX, PAGE_H - 76).stroke();
 
-    // Footer info
     doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(8)
       .text("G E M O N E   D I A M O N D   ·   F I N E   J E W E L L E R Y", 0, PAGE_H - 60, { width: PAGE_W, align: "center", lineBreak: false });
     doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(7.5)
       .text(MONTH_YEAR, 0, PAGE_H - 44, { width: PAGE_W, align: "center", lineBreak: false });
 
-    // ── CATALOG PAGES ──────────────────────────────────────────────────────────
+    // ══ CATALOG PAGES ═════════════════════════════════════════════════════════
     const drawHeader = (pageNum: number) => {
       doc.fillColor(BLACK).font("Playfair").fontSize(17)
         .text("Gemone Diamond", MX, 24, { lineBreak: false });
       doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8.5)
-        .text("CRAFTED WITH BRILLIANCE", MX, 48, { lineBreak: false });
+        .text("ETERNAL LUXURY", MX, 48, { lineBreak: false });
 
       const rightX = PAGE_W - MX - 240;
       doc.fillColor(GOLD).font("Playfair").fontSize(11)
@@ -473,6 +495,16 @@ router.post("/generate", async (req, res) => {
         .moveTo(MX, midY).lineTo(PAGE_W - MX, midY).stroke();
     };
 
+    // Helper to safely render one image
+    const renderImage = (buf: Buffer, x: number, y: number, w: number, h: number) => {
+      try {
+        doc.image(buf, x, y, { fit: [w, h], align: "center", valign: "center" });
+      } catch {
+        doc.rect(x, y, w, h).fillColor(LIGHT_BG).fill();
+        doc.rect(x, y, w, h).strokeColor(RULE_COLOR).lineWidth(0.3).stroke();
+      }
+    };
+
     const drawProduct = (
       item: JewelryItem,
       cellX: number,
@@ -486,53 +518,62 @@ router.post("/generate", async (req, res) => {
       const innerW = COL_W - CELL_PAD * 2;
       let y = cellY + CELL_PAD;
 
-      // Title in Playfair
-      doc.fillColor(BLACK).font("Playfair").fontSize(13)
-        .text(item.title, innerX, y, { width: innerW, lineBreak: false, ellipsis: true });
-      y += 19;
+      // Serial number badge (top-right)
+      const srLabel = `#${String(item.srNo).padStart(3, "0")}`;
+      doc.fillColor(GOLD).font("Helvetica-Bold").fontSize(8)
+        .text(srLabel, innerX, y, { width: innerW, align: "right", lineBreak: false });
 
+      // Title
+      doc.fillColor(BLACK).font("Playfair").fontSize(12)
+        .text(item.title, innerX, y, { width: innerW - 36, lineBreak: false, ellipsis: true });
+      y += 18;
+
+      // Subtitle
       const totalDiamond = item.centerDiamondWeight + item.sideDiamondWeight;
       const subLabel = totalDiamond > 0 ? "LAB GROWN DIAMOND" : "FINE JEWELLERY";
       doc.fillColor(GOLD_LIGHT).font("Helvetica").fontSize(7.5)
         .text(subLabel, innerX, y, { lineBreak: false });
-      y += 14;
+      y += 13;
 
       doc.strokeColor(RULE_COLOR).lineWidth(0.3)
         .moveTo(innerX, y).lineTo(innerX + innerW, y).stroke();
-      y += 8;
+      y += 7;
 
-      // Image
-      const availableH = ROW_H - CELL_PAD * 2;
-      const imgH = Math.round(availableH * 0.42);
-      const imgW = innerW;
+      // ── Three images in a row ──────────────────────────────────────────────
+      const imgGap = 5;
+      const imgW = Math.floor((innerW - imgGap * 2) / 3);
+      const imgH = 120;
 
-      if (item.imageBase64 && item.imageBase64.length > 0) {
-        try {
-          const imgBuf = Buffer.from(item.imageBase64, "base64");
-          doc.image(imgBuf, innerX, y, { fit: [imgW, imgH], align: "center", valign: "center" });
-        } catch {
-          doc.rect(innerX, y, imgW, imgH).fillColor(LIGHT_BG).fill();
-          doc.rect(innerX, y, imgW, imgH).strokeColor(RULE_COLOR).lineWidth(0.3).stroke();
-          doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(8)
-            .text("Image Error", innerX, y + imgH / 2 - 5, { width: imgW, align: "center" });
+      const imgSlots = [
+        { url: item.imageLeft, label: "Left" },
+        { url: item.imageCenter, label: "Center" },
+        { url: item.imageRight, label: "Right" },
+      ];
+
+      imgSlots.forEach((slot, idx) => {
+        const ix = innerX + idx * (imgW + imgGap);
+        const buf = slot.url ? fetchedImages.get(slot.url) : undefined;
+        if (buf) {
+          renderImage(buf, ix, y, imgW, imgH);
+        } else {
+          doc.rect(ix, y, imgW, imgH).fillColor(LIGHT_BG).fill();
+          doc.rect(ix, y, imgW, imgH).strokeColor(RULE_COLOR).lineWidth(0.3).stroke();
+          doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(6.5)
+            .text(slot.label, ix, y + imgH / 2 - 4, { width: imgW, align: "center", lineBreak: false });
         }
-      } else {
-        doc.rect(innerX, y, imgW, imgH).fillColor(LIGHT_BG).fill();
-        doc.rect(innerX, y, imgW, imgH).strokeColor(RULE_COLOR).lineWidth(0.3).stroke();
-        doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(8)
-          .text("No Image", innerX, y + imgH / 2 - 5, { width: imgW, align: "center" });
-      }
-      y += imgH + 10;
+      });
+      y += imgH + 9;
 
+      // ── Details ───────────────────────────────────────────────────────────
       const detailLabelW = innerW * 0.52;
       const detailValW = innerW * 0.48;
 
       const detailRow = (label: string, value: string) => {
-        doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8)
+        doc.fillColor(MID_GRAY).font("Helvetica").fontSize(7.5)
           .text(label, innerX, y, { width: detailLabelW, lineBreak: false });
-        doc.fillColor(DARK_GRAY).font("Helvetica-Bold").fontSize(8)
+        doc.fillColor(DARK_GRAY).font("Helvetica-Bold").fontSize(7.5)
           .text(value, innerX + detailLabelW, y, { width: detailValW, align: "right", lineBreak: false });
-        y += 12;
+        y += 11;
       };
 
       if (item.weight14k > 0) detailRow("Metal Weight", `${item.weight14k.toFixed(3)} g`);
@@ -545,16 +586,17 @@ router.post("/generate", async (req, res) => {
       y += 3;
       doc.strokeColor(RULE_COLOR).lineWidth(0.3)
         .moveTo(innerX, y).lineTo(innerX + innerW, y).stroke();
-      y += 7;
+      y += 6;
 
+      // ── Itemized charges ──────────────────────────────────────────────────
       if (showCharges) {
         const p14 = allPrices["14K"];
         const chargeRow = (label: string, value: string) => {
-          doc.fillColor(MID_GRAY).font("Helvetica").fontSize(7.5)
+          doc.fillColor(MID_GRAY).font("Helvetica").fontSize(7)
             .text(label, innerX, y, { width: detailLabelW, lineBreak: false });
-          doc.fillColor(DARK_GRAY).font("Helvetica").fontSize(7.5)
+          doc.fillColor(DARK_GRAY).font("Helvetica").fontSize(7)
             .text(value, innerX + detailLabelW, y, { width: detailValW, align: "right", lineBreak: false });
-          y += 11;
+          y += 10;
         };
         chargeRow("Metal (14K)", fmt(p14.metalCalcUSD));
         chargeRow("Diamond", fmt(p14.centerDiamondUSD + p14.sideDiamondUSD));
@@ -567,23 +609,23 @@ router.post("/generate", async (req, res) => {
         y += 3;
         doc.strokeColor(RULE_COLOR).lineWidth(0.3)
           .moveTo(innerX, y).lineTo(innerX + innerW, y).stroke();
-        y += 7;
+        y += 6;
       }
 
-      // Karat price strip
+      // ── Karat price strip ─────────────────────────────────────────────────
       const karats: KaratKey[] = ["10K", "14K", "18K"];
       const karatW = innerW / 3;
 
       karats.forEach((k, idx) => {
         const kx = innerX + idx * karatW;
-        doc.fillColor(GOLD_LIGHT).font("Helvetica").fontSize(7.5)
+        doc.fillColor(GOLD_LIGHT).font("Helvetica").fontSize(7)
           .text(k + " Gold", kx, y, { width: karatW, align: "center", lineBreak: false });
       });
-      y += 13;
+      y += 12;
 
       karats.forEach((k, idx) => {
         const kx = innerX + idx * karatW;
-        doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(10)
+        doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(9.5)
           .text(fmt(allPrices[k].total), kx, y, { width: karatW, align: "center", lineBreak: false });
       });
     };
@@ -608,6 +650,84 @@ router.post("/generate", async (req, res) => {
         drawProduct(item, positions[idx].x, positions[idx].y, pricingConfig, catalogType, showItemizedCharges);
       });
     }
+
+    // ══ THANK YOU PAGE ════════════════════════════════════════════════════════
+    doc.addPage();
+
+    // Top rules
+    doc.strokeColor(GOLD).lineWidth(1.2).moveTo(MX, 60).lineTo(PAGE_W - MX, 60).stroke();
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, 64).lineTo(PAGE_W - MX, 64).stroke();
+
+    // Small dot ornament
+    [cx - 12, cx, cx + 12].forEach((dx) => {
+      doc.fillColor(GOLD).circle(dx, 100, 3).fill();
+    });
+
+    // "Thank You" heading
+    doc.fillColor(GOLD).font("Playfair").fontSize(62)
+      .text("Thank You", 0, 124, { width: PAGE_W, align: "center", lineBreak: false });
+
+    doc.fillColor(BLACK).font("Playfair").fontSize(18)
+      .text("for visiting our catalog", 0, 202, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 2 });
+
+    // Thin rule + dot
+    doc.strokeColor(GOLD).lineWidth(0.8)
+      .moveTo(cx - 100, 238).lineTo(cx + 100, 238).stroke();
+    doc.fillColor(GOLD).circle(cx, 238, 3).fill();
+
+    // Tagline
+    doc.fillColor(MID_GRAY).font("Helvetica").fontSize(10)
+      .text(
+        "We look forward to crafting your next masterpiece.",
+        0, 256, { width: PAGE_W, align: "center", lineBreak: false }
+      );
+
+    // Contact Us section
+    doc.strokeColor(RULE_COLOR).lineWidth(0.4)
+      .moveTo(MX + 60, 300).lineTo(PAGE_W - MX - 60, 300).stroke();
+
+    doc.fillColor(GOLD).font("Playfair").fontSize(16)
+      .text("Contact Us", 0, 318, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 2 });
+
+    doc.fillColor(MID_GRAY).font("Helvetica").fontSize(9)
+      .text("Our team is always ready to assist you", 0, 342, { width: PAGE_W, align: "center", lineBreak: false });
+
+    // Phone numbers — side by side
+    const phoneY = 376;
+    const phoneBoxW = 200;
+    const phoneBoxH = 54;
+    const phone1X = cx - phoneBoxW - 20;
+    const phone2X = cx + 20;
+
+    const drawPhoneBox = (x: number, y: number, number: string, label: string) => {
+      doc.rect(x, y, phoneBoxW, phoneBoxH).strokeColor(GOLD_LIGHT).lineWidth(0.6).stroke();
+      doc.fillColor(GOLD_LIGHT).font("Helvetica").fontSize(7)
+        .text(label, x, y + 8, { width: phoneBoxW, align: "center", lineBreak: false });
+      doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(13)
+        .text(number, x, y + 22, { width: phoneBoxW, align: "center", lineBreak: false });
+    };
+
+    drawPhoneBox(phone1X, phoneY, "+91 63513 49740", "SALES & ENQUIRY");
+    drawPhoneBox(phone2X, phoneY, "+91 93755 20003", "SUPPORT");
+
+    // Core values brief line
+    doc.strokeColor(RULE_COLOR).lineWidth(0.4)
+      .moveTo(MX + 60, 468).lineTo(PAGE_W - MX - 60, 468).stroke();
+
+    doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(8)
+      .text(
+        "Authenticity  ·  Commitment  ·  Quality",
+        0, 484, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 2 }
+      );
+
+    // Bottom rule + footer
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, PAGE_H - 80).lineTo(PAGE_W - MX, PAGE_H - 80).stroke();
+    doc.strokeColor(GOLD).lineWidth(1.2).moveTo(MX, PAGE_H - 76).lineTo(PAGE_W - MX, PAGE_H - 76).stroke();
+
+    doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(8)
+      .text("G E M O N E   D I A M O N D   ·   F I N E   J E W E L L E R Y", 0, PAGE_H - 60, { width: PAGE_W, align: "center", lineBreak: false });
+    doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(7.5)
+      .text(MONTH_YEAR, 0, PAGE_H - 44, { width: PAGE_W, align: "center", lineBreak: false });
 
     doc.end();
   } catch (err) {

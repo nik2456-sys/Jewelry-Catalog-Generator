@@ -4,26 +4,17 @@ import { motion } from "framer-motion";
 import type { CatalogFormState } from "@/hooks/use-catalog";
 import { cn } from "@/lib/utils";
 
-interface ConfigPanelProps {
-  formState: CatalogFormState;
-  updatePricing: (key: keyof CatalogFormState["pricingConfig"], value: number) => void;
-  updateField: <K extends keyof CatalogFormState>(key: K, value: CatalogFormState[K]) => void;
+// ── InputGroup defined OUTSIDE ConfigPanel to prevent remount-on-render ──────
+interface InputGroupProps {
+  label: string;
+  value: number;
+  onChange: (val: number) => void;
+  icon?: React.ElementType;
+  prefix?: string;
 }
 
-export function ConfigPanel({ formState, updatePricing, updateField }: ConfigPanelProps) {
-  const InputGroup = ({
-    label,
-    value,
-    onChange,
-    icon: Icon,
-    prefix,
-  }: {
-    label: string;
-    value: number;
-    onChange: (val: number) => void;
-    icon?: React.ElementType;
-    prefix?: string;
-  }) => (
+function InputGroup({ label, value, onChange, icon: Icon, prefix }: InputGroupProps) {
+  return (
     <div className="space-y-2">
       <label className="text-xs font-bold text-muted-foreground uppercase tracking-wider flex items-center gap-1.5">
         {Icon && <Icon className="w-3.5 h-3.5" />}
@@ -31,14 +22,17 @@ export function ConfigPanel({ formState, updatePricing, updateField }: ConfigPan
       </label>
       <div className="relative">
         {prefix && (
-          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium">
+          <span className="absolute left-3 top-1/2 -translate-y-1/2 text-muted-foreground text-sm font-medium pointer-events-none">
             {prefix}
           </span>
         )}
         <input
           type="number"
           value={value}
-          onChange={(e) => onChange(parseFloat(e.target.value) || 0)}
+          onChange={(e) => {
+            const parsed = parseFloat(e.target.value);
+            onChange(isNaN(parsed) ? 0 : parsed);
+          }}
           className={cn(
             "w-full bg-white border border-border rounded-xl px-4 py-2.5 text-secondary font-medium",
             "focus:outline-none focus:ring-2 focus:ring-primary/20 focus:border-primary transition-all duration-200",
@@ -48,7 +42,17 @@ export function ConfigPanel({ formState, updatePricing, updateField }: ConfigPan
       </div>
     </div>
   );
+}
 
+// ─────────────────────────────────────────────────────────────────────────────
+
+interface ConfigPanelProps {
+  formState: CatalogFormState;
+  updatePricing: (key: keyof CatalogFormState["pricingConfig"], value: number) => void;
+  updateField: <K extends keyof CatalogFormState>(key: K, value: CatalogFormState[K]) => void;
+}
+
+export function ConfigPanel({ formState, updatePricing, updateField }: ConfigPanelProps) {
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -106,9 +110,9 @@ export function ConfigPanel({ formState, updatePricing, updateField }: ConfigPan
 
           {formState.catalogType === "B2B" && (
             <InputGroup
-              label="Fixed Wastage (USD)"
-              value={formState.pricingConfig.wastageFixedUSD}
-              onChange={(v) => updatePricing("wastageFixedUSD", v)}
+              label="Wastage per gram (USD)"
+              value={formState.pricingConfig.wastagePerGramUSD}
+              onChange={(v) => updatePricing("wastagePerGramUSD", v)}
               prefix="$"
             />
           )}
@@ -142,7 +146,7 @@ export function ConfigPanel({ formState, updatePricing, updateField }: ConfigPan
           )}
         </div>
 
-        {/* Output Options — Itemized Breakdown only */}
+        {/* PDF Options */}
         <div className="lg:col-span-3 border-t lg:border-t-0 lg:border-l border-border pt-6 lg:pt-0 lg:pl-8 flex flex-col justify-center">
           <p className="text-xs font-bold text-muted-foreground uppercase tracking-wider mb-3">
             PDF Options
@@ -157,15 +161,7 @@ export function ConfigPanel({ formState, updatePricing, updateField }: ConfigPan
                 className="peer sr-only"
               />
               <div className="w-6 h-6 border-2 border-muted-foreground rounded bg-white peer-checked:bg-primary peer-checked:border-primary transition-all flex items-center justify-center">
-                <svg
-                  className="w-4 h-4 text-white opacity-0 peer-checked:opacity-100 transition-opacity"
-                  viewBox="0 0 24 24"
-                  fill="none"
-                  stroke="currentColor"
-                  strokeWidth="3"
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                >
+                <svg className="w-4 h-4 text-white opacity-0 peer-checked:opacity-100 transition-opacity" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" strokeLinejoin="round">
                   <polyline points="20 6 9 17 4 12" />
                 </svg>
               </div>
@@ -179,7 +175,7 @@ export function ConfigPanel({ formState, updatePricing, updateField }: ConfigPan
           <div className="mt-4 p-3 rounded-xl bg-primary/5 border border-primary/20">
             <p className="text-xs font-bold text-primary mb-1">Prices Generated For:</p>
             <p className="text-xs text-muted-foreground">10K · 14K · 18K Gold</p>
-            <p className="text-xs text-muted-foreground mt-1">EF Color · VVS/VS Clarity</p>
+            <p className="text-xs text-muted-foreground mt-1">EF Color · VS Clarity</p>
           </div>
         </div>
       </div>

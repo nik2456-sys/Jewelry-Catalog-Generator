@@ -13,6 +13,5 @@ export interface GenerateCatalogRequest {
   items: JewelryItem[];
   pricingConfig: PricingConfig;
   catalogType: GenerateCatalogRequestCatalogType;
-  /** Whether to show individual charge breakdown in the catalog */
   showItemizedCharges: boolean;
 }

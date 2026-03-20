@@ -22,7 +22,7 @@ export function useCatalog() {
       goldPriceUSD: 200,
       diamondPriceUSD: 200,
       labourPerGramUSD: 20,
-      wastageFixedUSD: 20,
+      wastagePerGramUSD: 5,
       handlingPercent: 5,
       profitPercent: 10,
       adminChargePercent: 0,
@@ -34,46 +34,32 @@ export function useCatalog() {
   const uploadMutation = useUploadExcel();
   const generateMutation = useGenerateCatalog();
 
-  const handleUpload = async (file: File) => {
-    try {
-      const data = await uploadMutation.mutateAsync({ data: { file } });
-      setParsedData(data);
-      toast({
-        title: "Excel Processed Successfully",
-        description: `Loaded ${data.totalRows} jewelry items.`,
-      });
-    } catch (error) {
-      toast({
-        title: "Upload Failed",
-        description: "Could not process the Excel file. Please check the format.",
-        variant: "destructive",
-      });
-      console.error(error);
-    }
-  };
+  const isUploading = uploadMutation.isPending;
+  const isGenerating = generateMutation.isPending;
 
   const updatePricing = (key: keyof PricingConfig, value: number) => {
     setFormState((prev) => ({
       ...prev,
-      pricingConfig: {
-        ...prev.pricingConfig,
-        [key]: value,
-      },
+      pricingConfig: { ...prev.pricingConfig, [key]: value },
     }));
   };
 
   const updateField = <K extends keyof CatalogFormState>(key: K, value: CatalogFormState[K]) => {
-    setFormState((prev) => ({
-      ...prev,
-      [key]: value,
-    }));
+    setFormState((prev) => ({ ...prev, [key]: value }));
   };
 
-  const resetData = () => setParsedData(null);
+  const handleUpload = async (file: File) => {
+    try {
+      const result = await uploadMutation.mutateAsync({ data: { file } });
+      setParsedData(result);
+      toast({ title: `${result.totalRows} items loaded`, description: "Configure pricing and generate your catalog." });
+    } catch {
+      toast({ title: "Upload failed", description: "Please check your Excel file format.", variant: "destructive" });
+    }
+  };
 
   const handleGenerate = async () => {
     if (!parsedData) return;
-
     try {
       const blob = await generateMutation.mutateAsync({
         data: {
@@ -83,35 +69,27 @@ export function useCatalog() {
           showItemizedCharges: formState.showItemizedCharges,
         },
       });
-
-      const url = window.URL.createObjectURL(blob);
+      const url = URL.createObjectURL(blob as Blob);
       const a = document.createElement("a");
       a.href = url;
-      a.download = `Gemone_${formState.catalogType}_Catalog.pdf`;
+      a.download = `gemone-diamond-${formState.catalogType.toLowerCase()}-catalog.pdf`;
       document.body.appendChild(a);
       a.click();
-      window.URL.revokeObjectURL(url);
       document.body.removeChild(a);
-
-      toast({
-        title: "Catalog Generated",
-        description: "Your PDF has been downloaded successfully.",
-      });
-    } catch (error) {
-      toast({
-        title: "Generation Failed",
-        description: "An error occurred while building the PDF.",
-        variant: "destructive",
-      });
-      console.error(error);
+      URL.revokeObjectURL(url);
+      toast({ title: "Catalog generated!", description: "Your PDF has been downloaded." });
+    } catch {
+      toast({ title: "Generation failed", description: "Please try again.", variant: "destructive" });
     }
   };
+
+  const resetData = () => setParsedData(null);
 
   return {
     parsedData,
     formState,
-    isUploading: uploadMutation.isPending,
-    isGenerating: generateMutation.isPending,
+    isUploading,
+    isGenerating,
     handleUpload,
     handleGenerate,
     updatePricing,

@@ -8,7 +8,6 @@
 import * as zod from "zod";
 
 /**
- * Returns server health status
  * @summary Health check
  */
 export const HealthCheckResponse = zod.object({
@@ -32,14 +31,18 @@ export const UploadExcelResponse = zod.object({
       weight18k: zod.number(),
       centerDiamondWeight: zod.number(),
       sideDiamondWeight: zod.number(),
-      imageBase64: zod
+      imageLeft: zod
         .string()
         .optional()
-        .describe("Base64 encoded image from the Excel file"),
-      imageMimeType: zod
+        .describe("CDN URL for left-angle product image"),
+      imageCenter: zod
         .string()
         .optional()
-        .describe("MIME type of the image (e.g. image\/jpeg)"),
+        .describe("CDN URL for center\/main product image"),
+      imageRight: zod
+        .string()
+        .optional()
+        .describe("CDN URL for right-angle product image"),
     }),
   ),
   totalRows: zod.number(),
@@ -58,14 +61,18 @@ export const GenerateCatalogBody = zod.object({
       weight18k: zod.number(),
       centerDiamondWeight: zod.number(),
       sideDiamondWeight: zod.number(),
-      imageBase64: zod
+      imageLeft: zod
         .string()
         .optional()
-        .describe("Base64 encoded image from the Excel file"),
-      imageMimeType: zod
+        .describe("CDN URL for left-angle product image"),
+      imageCenter: zod
         .string()
         .optional()
-        .describe("MIME type of the image (e.g. image\/jpeg)"),
+        .describe("CDN URL for center\/main product image"),
+      imageRight: zod
+        .string()
+        .optional()
+        .describe("CDN URL for right-angle product image"),
     }),
   ),
   pricingConfig: zod.object({
@@ -74,9 +81,9 @@ export const GenerateCatalogBody = zod.object({
     labourPerGramUSD: zod
       .number()
       .describe("Labour charge per gram of metal in USD"),
-    wastageFixedUSD: zod
+    wastagePerGramUSD: zod
       .number()
-      .describe("Fixed wastage amount in USD (B2B only)"),
+      .describe("Wastage charge per gram of metal in USD (B2B only)"),
     handlingPercent: zod.number().describe("Handling charge percentage"),
     profitPercent: zod.number().describe("Profit margin percentage (B2C only)"),
     adminChargePercent: zod
@@ -84,7 +91,5 @@ export const GenerateCatalogBody = zod.object({
       .describe("Admin charge percentage (B2B only)"),
   }),
   catalogType: zod.enum(["B2B", "B2C"]),
-  showItemizedCharges: zod
-    .boolean()
-    .describe("Whether to show individual charge breakdown in the catalog"),
+  showItemizedCharges: zod.boolean(),
 });

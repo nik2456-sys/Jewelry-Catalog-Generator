@@ -17,7 +17,6 @@ paths:
       operationId: healthCheck
       tags: [health]
       summary: Health check
-      description: Returns server health status
       responses:
         "200":
           description: Healthy
@@ -87,15 +86,13 @@ components:
       properties:
         status:
           type: string
-      required:
-        - status
+      required: [status]
     ErrorResponse:
       type: object
       properties:
         error:
           type: string
-      required:
-        - error
+      required: [error]
     JewelryItem:
       type: object
       properties:
@@ -113,12 +110,15 @@ components:
           type: number
         sideDiamondWeight:
           type: number
-        imageBase64:
+        imageLeft:
           type: string
-          description: Base64 encoded image from the Excel file
-        imageMimeType:
+          description: CDN URL for left-angle product image
+        imageCenter:
           type: string
-          description: MIME type of the image (e.g. image/jpeg)
+          description: CDN URL for center/main product image
+        imageRight:
+          type: string
+          description: CDN URL for right-angle product image
       required:
         - srNo
         - title
@@ -136,9 +136,7 @@ components:
             $ref: "#/components/schemas/JewelryItem"
         totalRows:
           type: integer
-      required:
-        - items
-        - totalRows
+      required: [items, totalRows]
     PricingConfig:
       type: object
       properties:
@@ -151,9 +149,9 @@ components:
         labourPerGramUSD:
           type: number
           description: Labour charge per gram of metal in USD
-        wastageFixedUSD:
+        wastagePerGramUSD:
           type: number
-          description: Fixed wastage amount in USD (B2B only)
+          description: Wastage charge per gram of metal in USD (B2B only)
         handlingPercent:
           type: number
           description: Handling charge percentage
@@ -167,7 +165,7 @@ components:
         - goldPriceUSD
         - diamondPriceUSD
         - labourPerGramUSD
-        - wastageFixedUSD
+        - wastagePerGramUSD
         - handlingPercent
         - profitPercent
         - adminChargePercent
@@ -185,7 +183,6 @@ components:
           enum: [B2B, B2C]
         showItemizedCharges:
           type: boolean
-          description: Whether to show individual charge breakdown in the catalog
       required:
         - items
         - pricingConfig

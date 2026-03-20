@@ -13,8 +13,8 @@ export interface PricingConfig {
   diamondPriceUSD: number;
   /** Labour charge per gram of metal in USD */
   labourPerGramUSD: number;
-  /** Fixed wastage amount in USD (B2B only) */
-  wastageFixedUSD: number;
+  /** Wastage charge per gram of metal in USD (B2B only) */
+  wastagePerGramUSD: number;
   /** Handling charge percentage */
   handlingPercent: number;
   /** Profit margin percentage (B2C only) */

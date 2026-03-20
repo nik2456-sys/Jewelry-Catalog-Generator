@@ -21,10 +21,12 @@ export interface JewelryItem {
   weight18k: number;
   centerDiamondWeight: number;
   sideDiamondWeight: number;
-  /** Base64 encoded image from the Excel file */
-  imageBase64?: string;
-  /** MIME type of the image (e.g. image/jpeg) */
-  imageMimeType?: string;
+  /** CDN URL for left-angle product image */
+  imageLeft?: string;
+  /** CDN URL for center/main product image */
+  imageCenter?: string;
+  /** CDN URL for right-angle product image */
+  imageRight?: string;
 }
 
 export interface ParsedExcelData {
@@ -39,8 +41,8 @@ export interface PricingConfig {
   diamondPriceUSD: number;
   /** Labour charge per gram of metal in USD */
   labourPerGramUSD: number;
-  /** Fixed wastage amount in USD (B2B only) */
-  wastageFixedUSD: number;
+  /** Wastage charge per gram of metal in USD (B2B only) */
+  wastagePerGramUSD: number;
   /** Handling charge percentage */
   handlingPercent: number;
   /** Profit margin percentage (B2C only) */
@@ -61,7 +63,6 @@ export interface GenerateCatalogRequest {
   items: JewelryItem[];
   pricingConfig: PricingConfig;
   catalogType: GenerateCatalogRequestCatalogType;
-  /** Whether to show individual charge breakdown in the catalog */
   showItemizedCharges: boolean;
 }
 
