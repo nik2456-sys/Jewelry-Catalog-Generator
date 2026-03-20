@@ -277,7 +277,7 @@ router.post("/generate", async (req, res) => {
     const BODY_H = PAGE_H - HEADER_H - FOOTER_H;
     const ROW_H = BODY_H / 2;
     const COL_W = CW / 2;
-    const CELL_PAD = 24;
+    const CELL_PAD = 30;
 
     const doc = new PDFDocument({
       size: [PAGE_W, PAGE_H],
@@ -366,11 +366,11 @@ router.post("/generate", async (req, res) => {
     // ── Core Values section ────────────────────────────────────────────────────
     // 4 value pillars with drawn icons
     const valuesY = 492;
-    doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(7.5)
+    doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(9.5)
       .text("O U R   C O R E   V A L U E S", 0, valuesY, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 2 });
 
-    const iconY = valuesY + 28;
-    const iconR = 44;  // icon circle radius
+    const iconY = valuesY + 32;
+    const iconR = 52;  // icon circle radius
     // 4 icons evenly spaced
     const iconXs = [cx - 340, cx - 113, cx + 113, cx + 340];
     const iconLabelW = 140;
@@ -393,8 +393,8 @@ router.post("/generate", async (req, res) => {
     iconCircle(iconXs[1], iconY + iconR);
     const starCx = iconXs[1];
     const starCy = iconY + iconR;
-    const outerR = 22;
-    const innerR = 10;
+    const outerR = 26;
+    const innerR = 12;
     const starPath: number[][] = [];
     for (let si = 0; si < 10; si++) {
       const angle = (si * Math.PI) / 5 - Math.PI / 2;
@@ -409,17 +409,17 @@ router.post("/generate", async (req, res) => {
     iconCircle(iconXs[2], iconY + iconR);
     const gemCx = iconXs[2];
     const gemCy = iconY + iconR;
-    doc.moveTo(gemCx, gemCy - 26)
-      .lineTo(gemCx + 26, gemCy)
-      .lineTo(gemCx, gemCy + 26)
-      .lineTo(gemCx - 26, gemCy)
+    doc.moveTo(gemCx, gemCy - 31)
+      .lineTo(gemCx + 31, gemCy)
+      .lineTo(gemCx, gemCy + 31)
+      .lineTo(gemCx - 31, gemCy)
       .closePath().fillColor(GOLD_LIGHT).fill();
 
     // Icon 4: Shield with checkmark (promise)
     iconCircle(iconXs[3], iconY + iconR);
     const shCx = iconXs[3];
     const shCy = iconY + iconR - 2;
-    const shW = 28; const shH = 34;
+    const shW = 33; const shH = 40;
     // Shield: top rect + bottom point
     doc.moveTo(shCx - shW, shCy - shH / 2)
       .lineTo(shCx + shW, shCy - shH / 2)
@@ -428,13 +428,13 @@ router.post("/generate", async (req, res) => {
       .lineTo(shCx - shW, shCy + 4)
       .closePath().strokeColor(GOLD_LIGHT).lineWidth(1.2).stroke();
     // Checkmark inside shield
-    doc.moveTo(shCx - 12, shCy + 2)
-      .lineTo(shCx - 3, shCy + 11)
-      .lineTo(shCx + 14, shCy - 11)
+    doc.moveTo(shCx - 14, shCy + 2)
+      .lineTo(shCx - 3, shCy + 13)
+      .lineTo(shCx + 16, shCy - 13)
       .strokeColor(GOLD).lineWidth(2.5).stroke();
 
     // Labels below icons
-    const labelY = iconY + iconR * 2 + 10;
+    const labelY = iconY + iconR * 2 + 14;
     const valueLines = [
       ["Worldwide", "Shipping"],
       ["20,000+", "Happy Clients"],
@@ -444,10 +444,10 @@ router.post("/generate", async (req, res) => {
 
     iconXs.forEach((ix, vi) => {
       const lx = ix - iconLabelW / 2;
-      doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(11)
+      doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(13)
         .text(valueLines[vi][0], lx, labelY, { width: iconLabelW, align: "center", lineBreak: false });
-      doc.fillColor(MID_GRAY).font("Helvetica").fontSize(9)
-        .text(valueLines[vi][1], lx, labelY + 16, { width: iconLabelW, align: "center", lineBreak: false });
+      doc.fillColor(MID_GRAY).font("Helvetica").fontSize(10.5)
+        .text(valueLines[vi][1], lx, labelY + 20, { width: iconLabelW, align: "center", lineBreak: false });
     });
 
     // ── Bottom rules + footer ─────────────────────────────────────────────────
@@ -521,32 +521,32 @@ router.post("/generate", async (req, res) => {
       // ── SKU (left) + Serial number (right) on same row ────────────────────
       const skuLabel = `GD-${String(item.srNo).padStart(3, "0")}`;
       const srLabel = `#${String(item.srNo).padStart(3, "0")}`;
-      doc.fillColor(GOLD).font("Helvetica-Bold").fontSize(8)
+      doc.fillColor(GOLD).font("Helvetica-Bold").fontSize(9.5)
         .text(skuLabel, innerX, y, { lineBreak: false });
-      doc.fillColor(GOLD).font("Helvetica-Bold").fontSize(8)
+      doc.fillColor(GOLD).font("Helvetica-Bold").fontSize(9.5)
         .text(srLabel, innerX, y, { width: innerW, align: "right", lineBreak: false });
-      y += 16;
+      y += 20;
 
       // ── Title (2-line max, wraps naturally) ───────────────────────────────
       const totalDiamond = item.centerDiamondWeight + item.sideDiamondWeight;
-      doc.fillColor(BLACK).font("Playfair").fontSize(11)
-        .text(item.title, innerX, y, { width: innerW, lineBreak: true, height: 30, ellipsis: true });
-      y += 34;
+      doc.fillColor(BLACK).font("Playfair").fontSize(11.5)
+        .text(item.title, innerX, y, { width: innerW, lineBreak: true, height: 48, ellipsis: true });
+      y += 54;
 
       // ── Subtitle ──────────────────────────────────────────────────────────
       const subLabel = totalDiamond > 0 ? "LAB GROWN DIAMOND" : "FINE JEWELLERY";
-      doc.fillColor(GOLD_LIGHT).font("Helvetica").fontSize(7.5)
+      doc.fillColor(GOLD_LIGHT).font("Helvetica-Bold").fontSize(8)
         .text(subLabel, innerX, y, { lineBreak: false });
-      y += 14;
+      y += 18;
 
       doc.strokeColor(RULE_COLOR).lineWidth(0.3)
         .moveTo(innerX, y).lineTo(innerX + innerW, y).stroke();
       y += 8;
 
       // ── Three images in a row ──────────────────────────────────────────────
-      const imgGap = 6;
+      const imgGap = 8;
       const imgW = Math.floor((innerW - imgGap * 2) / 3);
-      const imgH = 150;
+      const imgH = showCharges ? 132 : 188;
 
       const imgSlots = [
         { url: item.imageLeft, label: "Left" },
@@ -573,11 +573,11 @@ router.post("/generate", async (req, res) => {
       const detailValW = innerW * 0.48;
 
       const detailRow = (label: string, value: string) => {
-        doc.fillColor(MID_GRAY).font("Helvetica").fontSize(7.5)
+        doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8.5)
           .text(label, innerX, y, { width: detailLabelW, lineBreak: false });
-        doc.fillColor(DARK_GRAY).font("Helvetica-Bold").fontSize(7.5)
+        doc.fillColor(DARK_GRAY).font("Helvetica-Bold").fontSize(8.5)
           .text(value, innerX + detailLabelW, y, { width: detailValW, align: "right", lineBreak: false });
-        y += 11;
+        y += 13;
       };
 
       if (item.weight14k > 0) detailRow("Metal Weight", `${item.weight14k.toFixed(3)} g`);
@@ -600,7 +600,7 @@ router.post("/generate", async (req, res) => {
             .text(label, innerX, y, { width: detailLabelW, lineBreak: false });
           doc.fillColor(DARK_GRAY).font("Helvetica").fontSize(7)
             .text(value, innerX + detailLabelW, y, { width: detailValW, align: "right", lineBreak: false });
-          y += 10;
+          y += 9;
         };
         chargeRow("Metal (14K)", fmt(p14.metalCalcUSD));
         chargeRow("Diamond", fmt(p14.centerDiamondUSD + p14.sideDiamondUSD));
@@ -622,14 +622,14 @@ router.post("/generate", async (req, res) => {
 
       karats.forEach((k, idx) => {
         const kx = innerX + idx * karatW;
-        doc.fillColor(GOLD_LIGHT).font("Helvetica").fontSize(7)
+        doc.fillColor(GOLD_LIGHT).font("Helvetica").fontSize(8.5)
           .text(k + " Gold", kx, y, { width: karatW, align: "center", lineBreak: false });
       });
-      y += 12;
+      y += 14;
 
       karats.forEach((k, idx) => {
         const kx = innerX + idx * karatW;
-        doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(9.5)
+        doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(11)
           .text(fmt(allPrices[k].total), kx, y, { width: karatW, align: "center", lineBreak: false });
       });
     };
