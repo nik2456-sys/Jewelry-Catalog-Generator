@@ -16,6 +16,7 @@ export interface CatalogFormState {
 export function useCatalog() {
   const { toast } = useToast();
   const [parsedData, setParsedData] = useState<ParsedExcelData | null>(null);
+  const [removedSrNos, setRemovedSrNos] = useState<Set<number>>(new Set());
 
   const [formState, setFormState] = useState<CatalogFormState>({
     pricingConfig: {
@@ -48,10 +49,20 @@ export function useCatalog() {
     setFormState((prev) => ({ ...prev, [key]: value }));
   };
 
+  const toggleRemoveItem = (srNo: number) => {
+    setRemovedSrNos((prev) => {
+      const next = new Set(prev);
+      if (next.has(srNo)) next.delete(srNo);
+      else next.add(srNo);
+      return next;
+    });
+  };
+
   const handleUpload = async (file: File) => {
     try {
       const result = await uploadMutation.mutateAsync({ data: { file } });
       setParsedData(result);
+      setRemovedSrNos(new Set());
       toast({ title: `${result.totalRows} items loaded`, description: "Configure pricing and generate your catalog." });
     } catch {
       toast({ title: "Upload failed", description: "Please check your Excel file format.", variant: "destructive" });
@@ -60,10 +71,15 @@ export function useCatalog() {
 
   const handleGenerate = async () => {
     if (!parsedData) return;
+    const filteredItems = parsedData.items.filter((item) => !removedSrNos.has(item.srNo));
+    if (filteredItems.length === 0) {
+      toast({ title: "No items selected", description: "Re-add at least one product before generating.", variant: "destructive" });
+      return;
+    }
     try {
       const blob = await generateMutation.mutateAsync({
         data: {
-          items: parsedData.items,
+          items: filteredItems,
           pricingConfig: formState.pricingConfig,
           catalogType: formState.catalogType,
           showItemizedCharges: formState.showItemizedCharges,
@@ -83,7 +99,12 @@ export function useCatalog() {
     }
   };
 
-  const resetData = () => setParsedData(null);
+  const resetData = () => {
+    setParsedData(null);
+    setRemovedSrNos(new Set());
+  };
+
+  const activeItemCount = parsedData ? parsedData.items.length - removedSrNos.size : 0;
 
   return {
     parsedData,
@@ -95,5 +116,8 @@ export function useCatalog() {
     updatePricing,
     updateField,
     resetData,
+    removedSrNos,
+    toggleRemoveItem,
+    activeItemCount,
   };
 }

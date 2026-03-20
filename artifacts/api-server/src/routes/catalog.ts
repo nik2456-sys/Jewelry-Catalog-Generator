@@ -277,7 +277,7 @@ router.post("/generate", async (req, res) => {
     const BODY_H = PAGE_H - HEADER_H - FOOTER_H;
     const ROW_H = BODY_H / 2;
     const COL_W = CW / 2;
-    const CELL_PAD = 18;
+    const CELL_PAD = 24;
 
     const doc = new PDFDocument({
       size: [PAGE_W, PAGE_H],
@@ -369,11 +369,11 @@ router.post("/generate", async (req, res) => {
     doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(7.5)
       .text("O U R   C O R E   V A L U E S", 0, valuesY, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 2 });
 
-    const iconY = valuesY + 22;
-    const iconR = 30;  // icon circle radius
+    const iconY = valuesY + 28;
+    const iconR = 44;  // icon circle radius
     // 4 icons evenly spaced
-    const iconXs = [cx - 345, cx - 115, cx + 115, cx + 345];
-    const iconLabelW = 120;
+    const iconXs = [cx - 340, cx - 113, cx + 113, cx + 340];
+    const iconLabelW = 140;
 
     // Helper: draw icon circle background
     const iconCircle = (x: number, y: number) => {
@@ -393,8 +393,8 @@ router.post("/generate", async (req, res) => {
     iconCircle(iconXs[1], iconY + iconR);
     const starCx = iconXs[1];
     const starCy = iconY + iconR;
-    const outerR = 16;
-    const innerR = 7;
+    const outerR = 22;
+    const innerR = 10;
     const starPath: number[][] = [];
     for (let si = 0; si < 10; si++) {
       const angle = (si * Math.PI) / 5 - Math.PI / 2;
@@ -409,17 +409,17 @@ router.post("/generate", async (req, res) => {
     iconCircle(iconXs[2], iconY + iconR);
     const gemCx = iconXs[2];
     const gemCy = iconY + iconR;
-    doc.moveTo(gemCx, gemCy - 18)
-      .lineTo(gemCx + 18, gemCy)
-      .lineTo(gemCx, gemCy + 18)
-      .lineTo(gemCx - 18, gemCy)
+    doc.moveTo(gemCx, gemCy - 26)
+      .lineTo(gemCx + 26, gemCy)
+      .lineTo(gemCx, gemCy + 26)
+      .lineTo(gemCx - 26, gemCy)
       .closePath().fillColor(GOLD_LIGHT).fill();
 
     // Icon 4: Shield with checkmark (promise)
     iconCircle(iconXs[3], iconY + iconR);
     const shCx = iconXs[3];
     const shCy = iconY + iconR - 2;
-    const shW = 20; const shH = 24;
+    const shW = 28; const shH = 34;
     // Shield: top rect + bottom point
     doc.moveTo(shCx - shW, shCy - shH / 2)
       .lineTo(shCx + shW, shCy - shH / 2)
@@ -428,10 +428,10 @@ router.post("/generate", async (req, res) => {
       .lineTo(shCx - shW, shCy + 4)
       .closePath().strokeColor(GOLD_LIGHT).lineWidth(1.2).stroke();
     // Checkmark inside shield
-    doc.moveTo(shCx - 9, shCy + 1)
-      .lineTo(shCx - 2, shCy + 8)
-      .lineTo(shCx + 10, shCy - 8)
-      .strokeColor(GOLD).lineWidth(2).stroke();
+    doc.moveTo(shCx - 12, shCy + 2)
+      .lineTo(shCx - 3, shCy + 11)
+      .lineTo(shCx + 14, shCy - 11)
+      .strokeColor(GOLD).lineWidth(2.5).stroke();
 
     // Labels below icons
     const labelY = iconY + iconR * 2 + 10;
@@ -444,10 +444,10 @@ router.post("/generate", async (req, res) => {
 
     iconXs.forEach((ix, vi) => {
       const lx = ix - iconLabelW / 2;
-      doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(8)
+      doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(11)
         .text(valueLines[vi][0], lx, labelY, { width: iconLabelW, align: "center", lineBreak: false });
-      doc.fillColor(MID_GRAY).font("Helvetica").fontSize(7)
-        .text(valueLines[vi][1], lx, labelY + 12, { width: iconLabelW, align: "center", lineBreak: false });
+      doc.fillColor(MID_GRAY).font("Helvetica").fontSize(9)
+        .text(valueLines[vi][1], lx, labelY + 16, { width: iconLabelW, align: "center", lineBreak: false });
     });
 
     // ── Bottom rules + footer ─────────────────────────────────────────────────
@@ -518,31 +518,35 @@ router.post("/generate", async (req, res) => {
       const innerW = COL_W - CELL_PAD * 2;
       let y = cellY + CELL_PAD;
 
-      // Serial number badge (top-right)
+      // ── SKU (left) + Serial number (right) on same row ────────────────────
+      const skuLabel = `GD-${String(item.srNo).padStart(3, "0")}`;
       const srLabel = `#${String(item.srNo).padStart(3, "0")}`;
       doc.fillColor(GOLD).font("Helvetica-Bold").fontSize(8)
+        .text(skuLabel, innerX, y, { lineBreak: false });
+      doc.fillColor(GOLD).font("Helvetica-Bold").fontSize(8)
         .text(srLabel, innerX, y, { width: innerW, align: "right", lineBreak: false });
+      y += 16;
 
-      // Title
-      doc.fillColor(BLACK).font("Playfair").fontSize(12)
-        .text(item.title, innerX, y, { width: innerW - 36, lineBreak: false, ellipsis: true });
-      y += 18;
-
-      // Subtitle
+      // ── Title (2-line max, wraps naturally) ───────────────────────────────
       const totalDiamond = item.centerDiamondWeight + item.sideDiamondWeight;
+      doc.fillColor(BLACK).font("Playfair").fontSize(11)
+        .text(item.title, innerX, y, { width: innerW, lineBreak: true, height: 30, ellipsis: true });
+      y += 34;
+
+      // ── Subtitle ──────────────────────────────────────────────────────────
       const subLabel = totalDiamond > 0 ? "LAB GROWN DIAMOND" : "FINE JEWELLERY";
       doc.fillColor(GOLD_LIGHT).font("Helvetica").fontSize(7.5)
         .text(subLabel, innerX, y, { lineBreak: false });
-      y += 13;
+      y += 14;
 
       doc.strokeColor(RULE_COLOR).lineWidth(0.3)
         .moveTo(innerX, y).lineTo(innerX + innerW, y).stroke();
-      y += 7;
+      y += 8;
 
       // ── Three images in a row ──────────────────────────────────────────────
-      const imgGap = 5;
+      const imgGap = 6;
       const imgW = Math.floor((innerW - imgGap * 2) / 3);
-      const imgH = 120;
+      const imgH = 150;
 
       const imgSlots = [
         { url: item.imageLeft, label: "Left" },

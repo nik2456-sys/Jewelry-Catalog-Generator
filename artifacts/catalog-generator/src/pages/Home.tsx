@@ -16,6 +16,9 @@ export default function Home() {
     updatePricing,
     updateField,
     resetData,
+    removedSrNos,
+    toggleRemoveItem,
+    activeItemCount,
   } = useCatalog();
 
   return (
@@ -93,7 +96,7 @@ export default function Home() {
                   ) : (
                     <>
                       <FileDown className="w-5 h-5" />
-                      Generate {formState.catalogType} Catalog (10K · 14K · 18K)
+                      Generate {formState.catalogType} Catalog ({activeItemCount} items · 10K · 14K · 18K)
                       <Sparkles className="w-4 h-4 ml-1 opacity-70" />
                     </>
                   )}
@@ -106,7 +109,11 @@ export default function Home() {
                 updateField={updateField}
               />
               
-              <JewelryTable data={parsedData} />
+              <JewelryTable
+                data={parsedData}
+                removedSrNos={removedSrNos}
+                onToggleRemove={toggleRemoveItem}
+              />
 
             </motion.div>
           )}
