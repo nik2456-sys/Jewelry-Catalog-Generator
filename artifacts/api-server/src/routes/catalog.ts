@@ -300,7 +300,7 @@ router.post("/generate", async (req, res) => {
       ["Worldwide", "Shipping"],
       ["20,000+", "Happy Clients"],
       ["50+ Years", "Experience"],
-      ["Auth · Commit · Quality", "Truly Custom"],
+      ["Certified Quality", "Truly Custom"],
     ];
     iconXs.forEach((ix, vi) => {
       const lx = ix - iconLabelW / 2;
@@ -318,21 +318,21 @@ router.post("/generate", async (req, res) => {
     doc.fillColor(GOLD).font("Playfair").fontSize(13)
       .text("O U R   P R O M I S E", 0, ourPromiseY, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 2 });
 
-    const promiseTextY = ourPromiseY + 16;
+    const promiseTextY = ourPromiseY + 28;
     doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(11)
       .text("Authenticity", cx - 280, promiseTextY, { width: 140, align: "center", lineBreak: false });
     doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8)
-      .text("We stand behind every piece", cx - 280, promiseTextY + 16, { width: 140, align: "center", lineBreak: false });
+      .text("Lab-certified genuine diamonds", cx - 280, promiseTextY + 17, { width: 140, align: "center", lineBreak: false });
 
     doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(11)
       .text("Commitment", cx - 70, promiseTextY, { width: 140, align: "center", lineBreak: false });
     doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8)
-      .text("Delivering on every promise", cx - 70, promiseTextY + 16, { width: 140, align: "center", lineBreak: false });
+      .text("On-time, every order, every time", cx - 70, promiseTextY + 17, { width: 140, align: "center", lineBreak: false });
 
     doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(11)
       .text("Quality", cx + 140, promiseTextY, { width: 140, align: "center", lineBreak: false });
     doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8)
-      .text("Crafted to the highest standard", cx + 140, promiseTextY + 16, { width: 140, align: "center", lineBreak: false });
+      .text("Flawless, verified by our Gemmologists", cx + 140, promiseTextY + 17, { width: 140, align: "center", lineBreak: false });
 
     // ── Bottom rules + footer ─────────────────────────────────────────────────
     drawPageFooter();
