@@ -300,7 +300,7 @@ router.post("/generate", async (req, res) => {
       ["Worldwide", "Shipping"],
       ["20,000+", "Happy Clients"],
       ["50+ Years", "Experience"],
-      ["Truly Custom", "Auth · Commit · Quality"],
+      ["Auth · Commit · Quality", "Truly Custom"],
     ];
     iconXs.forEach((ix, vi) => {
       const lx = ix - iconLabelW / 2;
@@ -318,25 +318,21 @@ router.post("/generate", async (req, res) => {
     doc.fillColor(GOLD).font("Playfair").fontSize(13)
       .text("O U R   P R O M I S E", 0, ourPromiseY, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 2 });
 
-    const promiseDotY = ourPromiseY + 24;
-    [cx - 190, cx - 63, cx + 63, cx + 190].forEach((dx) => {
-      doc.fillColor(GOLD_LIGHT).circle(dx, promiseDotY + 10, 3).fill();
-    });
+    const promiseTextY = ourPromiseY + 16;
+    doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(11)
+      .text("Authenticity", cx - 280, promiseTextY, { width: 140, align: "center", lineBreak: false });
+    doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8)
+      .text("We stand behind every piece", cx - 280, promiseTextY + 16, { width: 140, align: "center", lineBreak: false });
 
     doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(11)
-      .text("Authenticity", cx - 280, promiseDotY + 4, { width: 140, align: "center", lineBreak: false });
+      .text("Commitment", cx - 70, promiseTextY, { width: 140, align: "center", lineBreak: false });
     doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8)
-      .text("We stand behind every piece", cx - 280, promiseDotY + 20, { width: 140, align: "center", lineBreak: false });
+      .text("Delivering on every promise", cx - 70, promiseTextY + 16, { width: 140, align: "center", lineBreak: false });
 
     doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(11)
-      .text("Commitment", cx - 70, promiseDotY + 4, { width: 140, align: "center", lineBreak: false });
+      .text("Quality", cx + 140, promiseTextY, { width: 140, align: "center", lineBreak: false });
     doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8)
-      .text("Delivering on every promise", cx - 70, promiseDotY + 20, { width: 140, align: "center", lineBreak: false });
-
-    doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(11)
-      .text("Quality", cx + 140, promiseDotY + 4, { width: 140, align: "center", lineBreak: false });
-    doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8)
-      .text("Crafted to the highest standard", cx + 140, promiseDotY + 20, { width: 140, align: "center", lineBreak: false });
+      .text("Crafted to the highest standard", cx + 140, promiseTextY + 16, { width: 140, align: "center", lineBreak: false });
 
     // ── Bottom rules + footer ─────────────────────────────────────────────────
     drawPageFooter();
@@ -652,8 +648,9 @@ router.post("/generate", async (req, res) => {
       doc.fillColor(GOLD_LIGHT).font("Helvetica-Bold").fontSize(10).text("•", ptX, ptY, { lineBreak: false });
       doc.fillColor(DARK_GRAY).font("Helvetica").fontSize(9.5)
         .text(text, ptX + 16, ptY, { width: ptW - 16, lineBreak: true });
-      const lines = Math.ceil(text.length / 90);
-      ptY += Math.max(16, lines * 13) + 4;
+      // Consistent spacing: estimate wrapped lines at ~130 chars per line at this width/font
+      const estimatedLines = Math.max(1, Math.ceil(text.length / 130));
+      ptY += estimatedLines * 14 + 14;
     };
 
     // Section 1: Payment Methods
@@ -719,13 +716,17 @@ router.post("/generate", async (req, res) => {
       doc.fillColor(GOLD_LIGHT).font("Helvetica-Bold").fontSize(7)
         .text(label, x, y + 9, { width: w, align: "center", lineBreak: false });
       doc.strokeColor(GOLD_LIGHT).lineWidth(0.3).moveTo(x + 20, y + 20).lineTo(x + w - 20, y + 20).stroke();
-      let lineY = y + 27;
+      // Vertically center content in the remaining box space
+      const headerH = 22;
+      const contentH = lines.reduce((acc, l) => acc + (l.size ?? 10) + 6, 0);
+      const remainingH = h - headerH;
+      let lineY = y + headerH + Math.max(4, (remainingH - contentH) / 2);
       for (const line of lines) {
         const sz = line.size ?? 10;
         const fn = line.bold !== false ? "Helvetica-Bold" : "Helvetica";
         doc.fillColor(BLACK).font(fn).fontSize(sz)
           .text(line.text, x, lineY, { width: w, align: "center", lineBreak: false });
-        lineY += sz + 5;
+        lineY += sz + 6;
       }
     };
 
@@ -751,10 +752,8 @@ router.post("/generate", async (req, res) => {
 
     // Box 4 (bottom-right): Social Media
     drawContactBox(box2X, boxRow2Y, boxW, boxH, "SOCIAL MEDIA", [
-      { text: "@gemonellc", size: 11 },
-      { text: "Instagram  ·  Facebook", size: 8, bold: false },
-      { text: "@gemonediamondUSA", size: 11 },
-      { text: "Instagram  ·  Facebook", size: 8, bold: false },
+      { text: "Instagram  —  @gemonellc", size: 10 },
+      { text: "Facebook  —  @gemonediamondUSA", size: 10 },
     ]);
 
     // Bottom footer
