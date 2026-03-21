@@ -235,36 +235,19 @@ router.post("/generate", async (req, res) => {
     doc.strokeColor(GOLD).lineWidth(1.2).moveTo(MX, 50).lineTo(PAGE_W - MX, 50).stroke();
     doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, 54).lineTo(PAGE_W - MX, 54).stroke();
 
-    // Logo — square fit above brand (larger for new white-bg logo)
-    const coverLogoSize = 130;
-    const coverLogoY = 62;
+    // Logo — full brand logo (larger, includes GEMONE text)
+    const coverLogoSize = 210;
+    const coverLogoY = 60;
     drawLogo(cx - coverLogoSize / 2, coverLogoY, coverLogoSize);
 
-    // Brand name
-    const brandTopY = coverLogoY + coverLogoSize + 12;
-    doc.fillColor(GOLD).font("Playfair").fontSize(70)
-      .text("GEMONE", 0, brandTopY, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 12 });
-    doc.fillColor(BLACK).font("Playfair").fontSize(50)
-      .text("DIAMOND", 0, brandTopY + 80, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 8 });
-
-    const ruleY = brandTopY + 148;
-    doc.strokeColor(GOLD).lineWidth(0.8).moveTo(cx - 100, ruleY).lineTo(cx + 100, ruleY).stroke();
-    doc.fillColor(GOLD).circle(cx, ruleY, 3).fill();
-    doc.fillColor(GOLD_LIGHT).font("Playfair").fontSize(13)
-      .text("ETERNAL LUXURY", 0, ruleY + 14, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 3 });
-
-    const dividerY = ruleY + 42;
-    doc.strokeColor(RULE_COLOR).lineWidth(0.4).moveTo(MX + 60, dividerY).lineTo(PAGE_W - MX - 60, dividerY).stroke();
-    doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(10.5)
-      .text("GEMONE DIAMOND COLLECTION", 0, dividerY + 14, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 4 });
-
-    const tripleRuleY = dividerY + 46;
+    // Elegant divider straight after logo
+    const tripleRuleY = coverLogoY + coverLogoSize + 22;
     doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, tripleRuleY).lineTo(PAGE_W - MX, tripleRuleY).stroke();
     doc.strokeColor(GOLD).lineWidth(1.0).moveTo(MX, tripleRuleY + 3).lineTo(PAGE_W - MX, tripleRuleY + 3).stroke();
     doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, tripleRuleY + 6).lineTo(PAGE_W - MX, tripleRuleY + 6).stroke();
 
     // ── 4 Core Icons ────────────────────────────────────────────────────────
-    const iconY = tripleRuleY + 32;
+    const iconY = tripleRuleY + 28;
     const iconR = 46;
     const iconXs = [cx - 340, cx - 113, cx + 113, cx + 340];
     const iconLabelW = 140;
