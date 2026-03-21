@@ -235,9 +235,9 @@ router.post("/generate", async (req, res) => {
     doc.strokeColor(GOLD).lineWidth(1.2).moveTo(MX, 50).lineTo(PAGE_W - MX, 50).stroke();
     doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, 54).lineTo(PAGE_W - MX, 54).stroke();
 
-    // Logo — square fit above brand
-    const coverLogoSize = 60;
-    const coverLogoY = 68;
+    // Logo — square fit above brand (larger for new white-bg logo)
+    const coverLogoSize = 130;
+    const coverLogoY = 62;
     drawLogo(cx - coverLogoSize / 2, coverLogoY, coverLogoSize);
 
     // Brand name
@@ -650,7 +650,7 @@ router.post("/generate", async (req, res) => {
         .text(text, ptX + 16, ptY, { width: ptW - 16, lineBreak: true });
       // Consistent spacing: estimate wrapped lines at ~130 chars per line at this width/font
       const estimatedLines = Math.max(1, Math.ceil(text.length / 130));
-      ptY += estimatedLines * 14 + 14;
+      ptY += estimatedLines * 13 + 6;
     };
 
     // Section 1: Payment Methods
@@ -730,18 +730,17 @@ router.post("/generate", async (req, res) => {
       }
     };
 
-    // Box 1 (top-left): Phone Numbers
-    drawContactBox(box1X, boxRow1Y, boxW, boxH, "PHONE — SALES & SUPPORT", [
+    // Box 1 (top-left): Phone Numbers — both numbers, label at bottom
+    drawContactBox(box1X, boxRow1Y, boxW, boxH, "PHONE", [
       { text: "+91 63513 49740", size: 12 },
-      { text: "Sales & Enquiry", size: 8, bold: false },
       { text: "+91 93755 20003", size: 12 },
-      { text: "Support", size: 8, bold: false },
+      { text: "Sales & Enquiry", size: 8, bold: false },
     ]);
 
-    // Box 2 (top-right): Emails
+    // Box 2 (top-right): Emails — info first, then gmail
     drawContactBox(box2X, boxRow1Y, boxW, boxH, "EMAIL", [
-      { text: "Gemone.diamonds@gmail.com", size: 10 },
       { text: "info@gemonediamond.com", size: 10 },
+      { text: "Gemone.diamonds@gmail.com", size: 10 },
     ]);
 
     // Box 3 (bottom-left): Website
@@ -750,11 +749,44 @@ router.post("/generate", async (req, res) => {
       { text: "Visit us for the full collection", size: 8, bold: false },
     ]);
 
-    // Box 4 (bottom-right): Social Media
-    drawContactBox(box2X, boxRow2Y, boxW, boxH, "SOCIAL MEDIA", [
-      { text: "Instagram  —  @gemonellc", size: 10 },
-      { text: "Facebook  —  @gemonediamondUSA", size: 10 },
-    ]);
+    // Box 4 (bottom-right): Social Media — with drawn icons
+    { const bx = box2X; const by = boxRow2Y; const bw = boxW; const bh = boxH;
+      doc.rect(bx, by, bw, bh).strokeColor(GOLD_LIGHT).lineWidth(0.6).stroke();
+      doc.fillColor(GOLD_LIGHT).font("Helvetica-Bold").fontSize(7)
+        .text("SOCIAL MEDIA", bx, by + 9, { width: bw, align: "center", lineBreak: false });
+      doc.strokeColor(GOLD_LIGHT).lineWidth(0.3).moveTo(bx + 20, by + 20).lineTo(bx + bw - 20, by + 20).stroke();
+
+      // Vertically center the two icon+text rows
+      const smRowH = 18; const smGap = 10;
+      const smTotalH = smRowH * 2 + smGap;
+      const smStartY = by + 22 + Math.max(4, (bh - 22 - smTotalH) / 2);
+      const iconSz = 14; // icon bounding size
+      const iconTextGap = 8;
+      const rowContentW = iconSz + iconTextGap + 160; // approx content width
+      const rowStartX = bx + (bw - rowContentW) / 2;
+
+      // ── Instagram icon (rounded square + inner circle + dot) ──────────────
+      const ig1Y = smStartY + (smRowH - iconSz) / 2;
+      const igR = 3; // corner radius approximated with arcs
+      const igX = rowStartX; const igY = ig1Y;
+      // Outer rounded rect using moveTo/lineTo/arc approximation
+      doc.roundedRect(igX, igY, iconSz, iconSz, igR).strokeColor(GOLD).lineWidth(1.2).stroke();
+      // Inner circle
+      doc.circle(igX + iconSz / 2, igY + iconSz / 2, iconSz * 0.28).strokeColor(GOLD).lineWidth(1).stroke();
+      // Top-right dot
+      doc.circle(igX + iconSz - 3.5, igY + 3.5, 1.2).fillColor(GOLD).fill();
+      doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(10)
+        .text("@gemonellc", igX + iconSz + iconTextGap, smStartY + (smRowH - 10) / 2, { lineBreak: false });
+
+      // ── Facebook icon (circle with 'f') ───────────────────────────────────
+      const fb2Y = smStartY + smRowH + smGap;
+      const fbX = rowStartX; const fbY = fb2Y + (smRowH - iconSz) / 2;
+      doc.circle(fbX + iconSz / 2, fbY + iconSz / 2, iconSz / 2).strokeColor(GOLD).lineWidth(1.2).stroke();
+      doc.fillColor(GOLD).font("Helvetica-Bold").fontSize(10)
+        .text("f", fbX, fbY + 1, { width: iconSz, align: "center", lineBreak: false });
+      doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(10)
+        .text("@gemonediamondUSA", fbX + iconSz + iconTextGap, fb2Y + (smRowH - 10) / 2, { lineBreak: false });
+    }
 
     // Bottom footer
     doc.strokeColor(RULE_COLOR).lineWidth(0.4)
