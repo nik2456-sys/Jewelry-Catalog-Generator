@@ -54,16 +54,9 @@ function getWeightForKarat(item: JewelryItem, karat: KaratKey): number {
 }
 
 interface KaratPrices {
-  metalCalcUSD: number;
-  centerDiamondUSD: number;
-  sideDiamondUSD: number;
-  labourUSD: number;
-  wastageUSD: number;
-  handlingUSD: number;
-  adminUSD: number;
-  profitUSD: number;
-  total: number;
-  weight: number;
+  metalCalcUSD: number; centerDiamondUSD: number; sideDiamondUSD: number;
+  labourUSD: number; wastageUSD: number; handlingUSD: number;
+  adminUSD: number; profitUSD: number; total: number; weight: number;
 }
 
 function calcPricesForKarat(item: JewelryItem, config: PricingConfig, karat: KaratKey, catalogType: "B2B" | "B2C"): KaratPrices {
@@ -73,7 +66,6 @@ function calcPricesForKarat(item: JewelryItem, config: PricingConfig, karat: Kar
   const centerDiamondUSD = item.centerDiamondWeight * config.diamondPriceUSD;
   const sideDiamondUSD = item.sideDiamondWeight * config.diamondPriceUSD;
   const labourUSD = config.labourPerGramUSD * weight;
-
   if (catalogType === "B2B") {
     const wastageUSD = config.wastagePerGramUSD * weight;
     const subtotal = metalCalcUSD + centerDiamondUSD + sideDiamondUSD + labourUSD;
@@ -99,56 +91,33 @@ function calcAllKarats(item: JewelryItem, config: PricingConfig, catalogType: "B
   };
 }
 
-function fmt(v: number): string {
-  return `$${v.toFixed(2)}`;
-}
-
+function fmt(v: number): string { return `$${v.toFixed(2)}`; }
 function getMonthYear(): string {
-  const now = new Date();
-  return now.toLocaleDateString("en-US", { month: "long", year: "numeric" }).toUpperCase();
+  return new Date().toLocaleDateString("en-US", { month: "long", year: "numeric" }).toUpperCase();
 }
-
 async function fetchImageBuffer(url: string): Promise<Buffer | null> {
   try {
     const response = await fetch(url, { signal: AbortSignal.timeout(8000) });
     if (!response.ok) return null;
-    const ab = await response.arrayBuffer();
-    return Buffer.from(ab);
-  } catch {
-    return null;
-  }
+    return Buffer.from(await response.arrayBuffer());
+  } catch { return null; }
 }
 
 // ─── Sample Excel ─────────────────────────────────────────────────────────────
 router.get("/sample", (_req, res) => {
-  const headers = [
-    "Sr No", "SKU No", "Title",
-    "10K Weight", "14K Weight", "18K Weight",
-    "Center Diamond Weight", "Side Diamond Weight",
-    "Image 1 (Left)", "Image 2 (Center)", "Image 3 (Right)",
-  ];
+  const headers = ["Sr No","SKU No","Title","10K Weight","14K Weight","18K Weight","Center Diamond Weight","Side Diamond Weight","Image 1 (Left)","Image 2 (Center)","Image 3 (Right)"];
   const sampleRows = [
-    [1, "GD-001", "Solitaire Diamond Ring", 2.500, 2.750, 3.000, 0.50, 0.25,
-      "https://example.com/ring-left.jpg", "https://example.com/ring-center.jpg", "https://example.com/ring-right.jpg"],
-    [2, "GD-002", "Diamond Stud Earrings", 1.800, 2.000, 2.200, 0.30, 0.10,
-      "https://example.com/earring-left.jpg", "https://example.com/earring-center.jpg", "https://example.com/earring-right.jpg"],
-    [3, "GD-003", "Tennis Bracelet", 5.200, 5.800, 6.500, 1.20, 0.60,
-      "https://example.com/bracelet-left.jpg", "https://example.com/bracelet-center.jpg", "https://example.com/bracelet-right.jpg"],
-    [4, "GD-004", "Diamond Pendant Necklace", 1.200, 1.350, 1.500, 0.40, 0.15, "", "", ""],
-    [5, "GD-005", "Eternity Band Ring", 3.100, 3.450, 3.800, 0.00, 0.80, "", "", ""],
+    [1,"GD-001","Solitaire Diamond Ring",2.5,2.75,3.0,0.50,0.25,"https://example.com/ring-left.jpg","https://example.com/ring-center.jpg","https://example.com/ring-right.jpg"],
+    [2,"GD-002","Diamond Stud Earrings",1.8,2.0,2.2,0.30,0.10,"","",""],
+    [3,"GD-003","Tennis Bracelet",5.2,5.8,6.5,1.20,0.60,"","",""],
   ];
-
   const wb = XLSX.utils.book_new();
   const ws = XLSX.utils.aoa_to_sheet([headers, ...sampleRows]);
-  ws["!cols"] = [
-    { wch: 8 }, { wch: 14 }, { wch: 28 }, { wch: 12 }, { wch: 12 }, { wch: 12 },
-    { wch: 22 }, { wch: 20 }, { wch: 35 }, { wch: 35 }, { wch: 35 },
-  ];
+  ws["!cols"] = [{wch:8},{wch:14},{wch:28},{wch:12},{wch:12},{wch:12},{wch:22},{wch:20},{wch:35},{wch:35},{wch:35}];
   XLSX.utils.book_append_sheet(wb, ws, "Jewelry Catalog");
   const buf = XLSX.write(wb, { type: "buffer", bookType: "xlsx" });
-
-  res.setHeader("Content-Type", "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
-  res.setHeader("Content-Disposition", 'attachment; filename="gemone-catalog-sample.xlsx"');
+  res.setHeader("Content-Type","application/vnd.openxmlformats-officedocument.spreadsheetml.sheet");
+  res.setHeader("Content-Disposition",'attachment; filename="gemone-catalog-sample.xlsx"');
   res.send(buf);
 });
 
@@ -156,81 +125,39 @@ router.get("/sample", (_req, res) => {
 router.post("/upload", upload.single("file"), async (req, res) => {
   try {
     if (!req.file) { res.status(400).json({ error: "No file uploaded" }); return; }
-
     const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
-    const sheetName = workbook.SheetNames[0];
-    const sheet = workbook.Sheets[sheetName];
+    const sheet = workbook.Sheets[workbook.SheetNames[0]];
     const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { header: 1, raw: false });
-
     const headerRow = rows[0] as string[];
     const headerMap: Record<string, number> = {};
-    if (Array.isArray(headerRow)) {
-      headerRow.forEach((h: string, i: number) => { headerMap[String(h).toLowerCase().trim()] = i; });
-    }
-
+    if (Array.isArray(headerRow)) headerRow.forEach((h, i) => { headerMap[String(h).toLowerCase().trim()] = i; });
     const findCol = (names: string[]): number => {
-      for (const n of names)
-        for (const [key, idx] of Object.entries(headerMap))
-          if (key.includes(n)) return idx;
+      for (const n of names) for (const [key, idx] of Object.entries(headerMap)) if (key.includes(n)) return idx;
       return -1;
     };
-
-    const srNoCol = findCol(["sr no", "sr. no", "serial", "sr"]);
-    const skuCol = findCol(["sku no", "sku"]);
-    const titleCol = findCol(["title", "name", "product"]);
-    const w10kCol = findCol(["10k"]);
-    const w14kCol = findCol(["14k"]);
-    const w18kCol = findCol(["18k"]);
-    const centerCol = findCol(["center diamond", "center"]);
-    const sideCol = findCol(["side diamond", "side"]);
-    const imgLeftCol = findCol(["image 1", "img 1", "left"]);
-    const imgCenterCol = findCol(["image 2", "img 2", "center image", "main"]);
-    const imgRightCol = findCol(["image 3", "img 3", "right"]);
-
+    const srNoCol = findCol(["sr no","sr. no","serial","sr"]);
+    const skuCol = findCol(["sku no","sku"]);
+    const titleCol = findCol(["title","name","product"]);
+    const w10kCol = findCol(["10k"]); const w14kCol = findCol(["14k"]); const w18kCol = findCol(["18k"]);
+    const centerCol = findCol(["center diamond","center"]);
+    const sideCol = findCol(["side diamond","side"]);
+    const imgLeftCol = findCol(["image 1","img 1","left"]);
+    const imgCenterCol = findCol(["image 2","img 2","center image","main"]);
+    const imgRightCol = findCol(["image 3","img 3","right"]);
     const items: JewelryItem[] = [];
-
     for (let i = 1; i < rows.length; i++) {
       const row = rows[i] as string[];
       if (!row || row.length === 0) continue;
-
-      const parseNum = (idx: number) => {
-        if (idx < 0 || idx >= row.length) return 0;
-        const v = row[idx];
-        if (v === undefined || v === null || v === "") return 0;
-        return parseFloat(String(v).replace(/[^0-9.-]/g, "")) || 0;
-      };
-
-      const getStr = (idx: number): string | undefined => {
-        if (idx < 0 || idx >= row.length) return undefined;
-        const v = String(row[idx] || "").trim();
-        return v.length > 0 ? v : undefined;
-      };
-
+      const parseNum = (idx: number) => { if (idx < 0 || idx >= row.length) return 0; const v = row[idx]; if (v === undefined || v === null || v === "") return 0; return parseFloat(String(v).replace(/[^0-9.-]/g,"")) || 0; };
+      const getStr = (idx: number): string | undefined => { if (idx < 0 || idx >= row.length) return undefined; const v = String(row[idx] || "").trim(); return v.length > 0 ? v : undefined; };
       const srNo = srNoCol >= 0 ? parseInt(String(row[srNoCol])) || i : i;
       const title = titleCol >= 0 ? String(row[titleCol] || `Item ${srNo}`) : `Item ${srNo}`;
       if (!title || title.trim() === "") continue;
-
-      const skuRaw = getStr(skuCol);
-      const skuNo = skuRaw ?? String(srNo);
-
-      items.push({
-        srNo, skuNo, title,
-        weight10k: parseNum(w10kCol),
-        weight14k: parseNum(w14kCol),
-        weight18k: parseNum(w18kCol),
-        centerDiamondWeight: parseNum(centerCol),
-        sideDiamondWeight: parseNum(sideCol),
-        imageLeft: getStr(imgLeftCol),
-        imageCenter: getStr(imgCenterCol),
-        imageRight: getStr(imgRightCol),
-      });
+      const skuNo = getStr(skuCol) ?? String(srNo);
+      items.push({ srNo, skuNo, title, weight10k: parseNum(w10kCol), weight14k: parseNum(w14kCol), weight18k: parseNum(w18kCol), centerDiamondWeight: parseNum(centerCol), sideDiamondWeight: parseNum(sideCol), imageLeft: getStr(imgLeftCol), imageCenter: getStr(imgCenterCol), imageRight: getStr(imgRightCol) });
     }
-
     res.json({ items, totalRows: items.length });
-  } catch (err) {
-    console.error("Upload error:", err);
-    res.status(500).json({ error: "Failed to parse Excel file" });
-  }
+  } catch (err) { console.error("Upload error:", err); res.status(500).json({ error: "Failed to parse Excel file" }); }
 });
 
 // ─── Generate PDF ─────────────────────────────────────────────────────────────
@@ -238,34 +165,15 @@ router.post("/generate", async (req, res) => {
   try {
     const body = req.body as GenerateCatalogRequest;
     const { items, pricingConfig, catalogType, showItemizedCharges } = body;
+    if (!items || !pricingConfig || !catalogType) { res.status(400).json({ error: "Missing required fields" }); return; }
 
-    if (!items || !pricingConfig || !catalogType) {
-      res.status(400).json({ error: "Missing required fields" });
-      return;
-    }
-
-    // Load logo
     let logoBuf: Buffer | null = null;
-    try {
-      logoBuf = fs.readFileSync(LOGO_PATH);
-    } catch {
-      logoBuf = null;
-    }
+    try { logoBuf = fs.readFileSync(LOGO_PATH); } catch { logoBuf = null; }
 
-    // Pre-fetch all CDN images
     const allUrls = new Set<string>();
-    for (const item of items) {
-      if (item.imageLeft) allUrls.add(item.imageLeft);
-      if (item.imageCenter) allUrls.add(item.imageCenter);
-      if (item.imageRight) allUrls.add(item.imageRight);
-    }
+    for (const item of items) { if (item.imageLeft) allUrls.add(item.imageLeft); if (item.imageCenter) allUrls.add(item.imageCenter); if (item.imageRight) allUrls.add(item.imageRight); }
     const fetchedImages = new Map<string, Buffer>();
-    await Promise.all(
-      Array.from(allUrls).map(async (url) => {
-        const buf = await fetchImageBuffer(url);
-        if (buf) fetchedImages.set(url, buf);
-      })
-    );
+    await Promise.all(Array.from(allUrls).map(async (url) => { const buf = await fetchImageBuffer(url); if (buf) fetchedImages.set(url, buf); }));
 
     const DIAMOND_COLOR = "EF";
     const DIAMOND_CLARITY = "VS Clarity";
@@ -275,7 +183,6 @@ router.post("/generate", async (req, res) => {
     const PAGE_H = 1000;
     const MX = 50;
     const CW = PAGE_W - MX * 2;
-
     const BLACK = "#0D0D0D";
     const DARK_GRAY = "#333333";
     const MID_GRAY = "#666666";
@@ -290,17 +197,10 @@ router.post("/generate", async (req, res) => {
     const BODY_H = PAGE_H - HEADER_H - FOOTER_H;
     const ROW_H = BODY_H / 2;
     const COL_W = CW / 2;
-    const CELL_PAD = 30;
+    const CELL_PAD = 24;
 
-    const doc = new PDFDocument({
-      size: [PAGE_W, PAGE_H],
-      margin: 0,
-      autoFirstPage: false,
-      info: { Title: `Gemone Diamond ${catalogType} Catalog`, Author: "Gemone Diamond" },
-    });
-
+    const doc = new PDFDocument({ size: [PAGE_W, PAGE_H], margin: 0, autoFirstPage: false, info: { Title: `Gemone Diamond ${catalogType} Catalog`, Author: "Gemone Diamond" } });
     doc.registerFont("Playfair", PLAYFAIR_FONT);
-
     res.setHeader("Content-Type", "application/pdf");
     res.setHeader("Content-Disposition", `attachment; filename="gemone-diamond-${catalogType.toLowerCase()}-catalog.pdf"`);
     doc.pipe(res);
@@ -308,297 +208,241 @@ router.post("/generate", async (req, res) => {
     const totalPages = Math.ceil(items.length / 4);
     const cx = PAGE_W / 2;
 
+    // ── Helper: draw logo square ──────────────────────────────────────────────
+    const drawLogo = (x: number, y: number, size: number) => {
+      if (!logoBuf) return;
+      try { doc.image(logoBuf, x, y, { fit: [size, size], align: "center", valign: "center" }); } catch { /* skip */ }
+    };
+
+    // ── Helper: draw icon circle ──────────────────────────────────────────────
+    const iconCircle = (x: number, y: number, r: number) => {
+      doc.circle(x, y, r).strokeColor(GOLD).lineWidth(0.8).stroke();
+    };
+
+    // ── Helper: page bottom rules + footer ────────────────────────────────────
+    const drawPageFooter = () => {
+      doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, PAGE_H - 80).lineTo(PAGE_W - MX, PAGE_H - 80).stroke();
+      doc.strokeColor(GOLD).lineWidth(1.2).moveTo(MX, PAGE_H - 76).lineTo(PAGE_W - MX, PAGE_H - 76).stroke();
+      doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(8)
+        .text("G E M O N E   D I A M O N D   ·   F I N E   J E W E L L E R Y", 0, PAGE_H - 60, { width: PAGE_W, align: "center", lineBreak: false });
+      doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(7.5)
+        .text(MONTH_YEAR, 0, PAGE_H - 44, { width: PAGE_W, align: "center", lineBreak: false });
+    };
+
     // ══ COVER PAGE ═══════════════════════════════════════════════════════════
     doc.addPage();
 
-    // Top rule pair
     doc.strokeColor(GOLD).lineWidth(1.2).moveTo(MX, 50).lineTo(PAGE_W - MX, 50).stroke();
     doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, 54).lineTo(PAGE_W - MX, 54).stroke();
 
-    // ── Logo above brand name ─────────────────────────────────────────────────
-    const logoSize = 90;
-    const logoY = 70;
-    if (logoBuf) {
-      try {
-        doc.image(logoBuf, cx - logoSize / 2, logoY, { width: logoSize, height: logoSize });
-      } catch {
-        // skip logo if error
-      }
-    }
+    // Logo — square fit above brand
+    const coverLogoSize = 60;
+    const coverLogoY = 68;
+    drawLogo(cx - coverLogoSize / 2, coverLogoY, coverLogoSize);
 
-    // ── Brand name block ──────────────────────────────────────────────────────
-    const brandTopY = logoY + logoSize + 10;
-    doc.fillColor(GOLD).font("Playfair").fontSize(72)
+    // Brand name
+    const brandTopY = coverLogoY + coverLogoSize + 12;
+    doc.fillColor(GOLD).font("Playfair").fontSize(70)
       .text("GEMONE", 0, brandTopY, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 12 });
+    doc.fillColor(BLACK).font("Playfair").fontSize(50)
+      .text("DIAMOND", 0, brandTopY + 80, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 8 });
 
-    doc.fillColor(BLACK).font("Playfair").fontSize(52)
-      .text("DIAMOND", 0, brandTopY + 82, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 8 });
-
-    // Rule + dot
-    const ruleY = brandTopY + 152;
-    doc.strokeColor(GOLD).lineWidth(0.8)
-      .moveTo(cx - 100, ruleY).lineTo(cx + 100, ruleY).stroke();
+    const ruleY = brandTopY + 148;
+    doc.strokeColor(GOLD).lineWidth(0.8).moveTo(cx - 100, ruleY).lineTo(cx + 100, ruleY).stroke();
     doc.fillColor(GOLD).circle(cx, ruleY, 3).fill();
+    doc.fillColor(GOLD_LIGHT).font("Playfair").fontSize(13)
+      .text("ETERNAL LUXURY", 0, ruleY + 14, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 3 });
 
-    // Slogan "ETERNAL LUXURY"
-    doc.fillColor(GOLD_LIGHT).font("Playfair").fontSize(14)
-      .text("ETERNAL LUXURY", 0, ruleY + 16, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 3 });
+    const dividerY = ruleY + 42;
+    doc.strokeColor(RULE_COLOR).lineWidth(0.4).moveTo(MX + 60, dividerY).lineTo(PAGE_W - MX - 60, dividerY).stroke();
+    doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(10.5)
+      .text("GEMONE DIAMOND COLLECTION", 0, dividerY + 14, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 4 });
 
-    // Thin divider
-    const dividerY = ruleY + 44;
-    doc.strokeColor(RULE_COLOR).lineWidth(0.4)
-      .moveTo(MX + 60, dividerY).lineTo(PAGE_W - MX - 60, dividerY).stroke();
-
-    // Catalog type badge — always "Gemone Diamond Collection"
-    doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(11)
-      .text("GEMONE DIAMOND COLLECTION", 0, dividerY + 16, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 4 });
-
-    // Triple rule
-    const tripleRuleY = dividerY + 50;
+    const tripleRuleY = dividerY + 46;
     doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, tripleRuleY).lineTo(PAGE_W - MX, tripleRuleY).stroke();
     doc.strokeColor(GOLD).lineWidth(1.0).moveTo(MX, tripleRuleY + 3).lineTo(PAGE_W - MX, tripleRuleY + 3).stroke();
     doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, tripleRuleY + 6).lineTo(PAGE_W - MX, tripleRuleY + 6).stroke();
 
-    // ── Core Values section (no title) ────────────────────────────────────────
-    const iconY = tripleRuleY + 40;
-    const iconR = 52;
+    // ── 4 Core Icons ────────────────────────────────────────────────────────
+    const iconY = tripleRuleY + 32;
+    const iconR = 46;
     const iconXs = [cx - 340, cx - 113, cx + 113, cx + 340];
     const iconLabelW = 140;
 
-    const iconCircle = (x: number, y: number) => {
-      doc.circle(x, y, iconR).strokeColor(GOLD).lineWidth(0.8).stroke();
-    };
-
-    // Icon 1: Globe (worldwide shipping)
-    iconCircle(iconXs[0], iconY + iconR);
+    // Icon 1: Globe
+    iconCircle(iconXs[0], iconY + iconR, iconR);
     doc.ellipse(iconXs[0], iconY + iconR, iconR * 0.6, iconR * 0.22).strokeColor(GOLD_LIGHT).lineWidth(0.6).stroke();
-    doc.moveTo(iconXs[0], iconY + iconR - iconR * 0.85).lineTo(iconXs[0], iconY + iconR + iconR * 0.85)
-      .strokeColor(GOLD_LIGHT).lineWidth(0.6).stroke();
-    doc.moveTo(iconXs[0] - iconR * 0.85, iconY + iconR).lineTo(iconXs[0] + iconR * 0.85, iconY + iconR)
-      .strokeColor(GOLD_LIGHT).lineWidth(0.6).stroke();
+    doc.moveTo(iconXs[0], iconY + iconR - iconR * 0.85).lineTo(iconXs[0], iconY + iconR + iconR * 0.85).strokeColor(GOLD_LIGHT).lineWidth(0.6).stroke();
+    doc.moveTo(iconXs[0] - iconR * 0.85, iconY + iconR).lineTo(iconXs[0] + iconR * 0.85, iconY + iconR).strokeColor(GOLD_LIGHT).lineWidth(0.6).stroke();
 
-    // Icon 2: Star (satisfied clients)
-    iconCircle(iconXs[1], iconY + iconR);
-    const starCx = iconXs[1];
-    const starCy = iconY + iconR;
-    const outerR = 26;
-    const innerR = 12;
-    const starPath: number[][] = [];
-    for (let si = 0; si < 10; si++) {
-      const angle = (si * Math.PI) / 5 - Math.PI / 2;
-      const r = si % 2 === 0 ? outerR : innerR;
-      starPath.push([starCx + r * Math.cos(angle), starCy + r * Math.sin(angle)]);
-    }
-    doc.moveTo(starPath[0][0], starPath[0][1]);
-    for (let si = 1; si < starPath.length; si++) doc.lineTo(starPath[si][0], starPath[si][1]);
+    // Icon 2: Star
+    iconCircle(iconXs[1], iconY + iconR, iconR);
+    const sCx = iconXs[1]; const sCy = iconY + iconR;
+    const sPath: number[][] = [];
+    for (let si = 0; si < 10; si++) { const a = (si * Math.PI) / 5 - Math.PI / 2; const r = si % 2 === 0 ? 24 : 11; sPath.push([sCx + r * Math.cos(a), sCy + r * Math.sin(a)]); }
+    doc.moveTo(sPath[0][0], sPath[0][1]);
+    for (let si = 1; si < sPath.length; si++) doc.lineTo(sPath[si][0], sPath[si][1]);
     doc.closePath().fillColor(GOLD_LIGHT).fill();
 
-    // Icon 3: Diamond (50+ years)
-    iconCircle(iconXs[2], iconY + iconR);
-    const gemCx = iconXs[2];
-    const gemCy = iconY + iconR;
-    doc.moveTo(gemCx, gemCy - 31)
-      .lineTo(gemCx + 31, gemCy)
-      .lineTo(gemCx, gemCy + 31)
-      .lineTo(gemCx - 31, gemCy)
-      .closePath().fillColor(GOLD_LIGHT).fill();
+    // Icon 3: Diamond gem
+    iconCircle(iconXs[2], iconY + iconR, iconR);
+    const gCx = iconXs[2]; const gCy = iconY + iconR;
+    doc.moveTo(gCx, gCy - 28).lineTo(gCx + 28, gCy).lineTo(gCx, gCy + 28).lineTo(gCx - 28, gCy).closePath().fillColor(GOLD_LIGHT).fill();
 
-    // Icon 4: Shield with checkmark (Truly Custom)
-    iconCircle(iconXs[3], iconY + iconR);
-    const shCx = iconXs[3];
-    const shCy = iconY + iconR - 2;
-    const shW = 33; const shH = 40;
-    doc.moveTo(shCx - shW, shCy - shH / 2)
-      .lineTo(shCx + shW, shCy - shH / 2)
-      .lineTo(shCx + shW, shCy + 4)
-      .lineTo(shCx, shCy + shH / 2 + 4)
-      .lineTo(shCx - shW, shCy + 4)
-      .closePath().strokeColor(GOLD_LIGHT).lineWidth(1.2).stroke();
-    doc.moveTo(shCx - 14, shCy + 2)
-      .lineTo(shCx - 3, shCy + 13)
-      .lineTo(shCx + 16, shCy - 13)
-      .strokeColor(GOLD).lineWidth(2.5).stroke();
+    // Icon 4: Shield + checkmark (Truly Custom)
+    iconCircle(iconXs[3], iconY + iconR, iconR);
+    const shCx = iconXs[3]; const shCy = iconY + iconR - 2;
+    doc.moveTo(shCx - 28, shCy - 18).lineTo(shCx + 28, shCy - 18).lineTo(shCx + 28, shCy + 4).lineTo(shCx, shCy + 22).lineTo(shCx - 28, shCy + 4).closePath().strokeColor(GOLD_LIGHT).lineWidth(1.2).stroke();
+    doc.moveTo(shCx - 12, shCy + 2).lineTo(shCx - 2, shCy + 11).lineTo(shCx + 14, shCy - 11).strokeColor(GOLD).lineWidth(2.5).stroke();
 
-    // Labels below icons
-    const labelY = iconY + iconR * 2 + 14;
+    const labelY = iconY + iconR * 2 + 12;
     const valueLines = [
       ["Worldwide", "Shipping"],
       ["20,000+", "Happy Clients"],
       ["50+ Years", "Experience"],
       ["Truly Custom", "Auth · Commit · Quality"],
     ];
-
     iconXs.forEach((ix, vi) => {
       const lx = ix - iconLabelW / 2;
-      doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(13)
-        .text(valueLines[vi][0], lx, labelY, { width: iconLabelW, align: "center", lineBreak: false });
-      doc.fillColor(MID_GRAY).font("Helvetica").fontSize(10.5)
-        .text(valueLines[vi][1], lx, labelY + 20, { width: iconLabelW, align: "center", lineBreak: false });
+      doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(12).text(valueLines[vi][0], lx, labelY, { width: iconLabelW, align: "center", lineBreak: false });
+      doc.fillColor(MID_GRAY).font("Helvetica").fontSize(9.5).text(valueLines[vi][1], lx, labelY + 18, { width: iconLabelW, align: "center", lineBreak: false });
     });
 
-    // ── Bottom rules + footer ─────────────────────────────────────────────────
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, PAGE_H - 80).lineTo(PAGE_W - MX, PAGE_H - 80).stroke();
-    doc.strokeColor(GOLD).lineWidth(1.2).moveTo(MX, PAGE_H - 76).lineTo(PAGE_W - MX, PAGE_H - 76).stroke();
+    // ── Our Promise section ───────────────────────────────────────────────────
+    const promiseY = labelY + 60;
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, promiseY).lineTo(PAGE_W - MX, promiseY).stroke();
+    doc.strokeColor(GOLD).lineWidth(1.0).moveTo(MX, promiseY + 3).lineTo(PAGE_W - MX, promiseY + 3).stroke();
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, promiseY + 6).lineTo(PAGE_W - MX, promiseY + 6).stroke();
 
-    doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(8)
-      .text("G E M O N E   D I A M O N D   ·   F I N E   J E W E L L E R Y", 0, PAGE_H - 60, { width: PAGE_W, align: "center", lineBreak: false });
-    doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(7.5)
-      .text(MONTH_YEAR, 0, PAGE_H - 44, { width: PAGE_W, align: "center", lineBreak: false });
+    const ourPromiseY = promiseY + 22;
+    doc.fillColor(GOLD).font("Playfair").fontSize(13)
+      .text("O U R   P R O M I S E", 0, ourPromiseY, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 2 });
+
+    const promiseDotY = ourPromiseY + 24;
+    [cx - 190, cx - 63, cx + 63, cx + 190].forEach((dx) => {
+      doc.fillColor(GOLD_LIGHT).circle(dx, promiseDotY + 10, 3).fill();
+    });
+
+    doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(11)
+      .text("Authenticity", cx - 280, promiseDotY + 4, { width: 140, align: "center", lineBreak: false });
+    doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8)
+      .text("We stand behind every piece", cx - 280, promiseDotY + 20, { width: 140, align: "center", lineBreak: false });
+
+    doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(11)
+      .text("Commitment", cx - 70, promiseDotY + 4, { width: 140, align: "center", lineBreak: false });
+    doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8)
+      .text("Delivering on every promise", cx - 70, promiseDotY + 20, { width: 140, align: "center", lineBreak: false });
+
+    doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(11)
+      .text("Quality", cx + 140, promiseDotY + 4, { width: 140, align: "center", lineBreak: false });
+    doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8)
+      .text("Crafted to the highest standard", cx + 140, promiseDotY + 20, { width: 140, align: "center", lineBreak: false });
+
+    // ── Bottom rules + footer ─────────────────────────────────────────────────
+    drawPageFooter();
 
     // ══ CATALOG PAGES ═════════════════════════════════════════════════════════
     const drawHeader = (pageNum: number) => {
-      // Left: brand name
-      doc.fillColor(BLACK).font("Playfair").fontSize(15)
-        .text("Gemone Diamond", MX, 28, { lineBreak: false });
-      doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8)
-        .text("ETERNAL LUXURY", MX, 50, { lineBreak: false });
-
-      // Center: logo
-      const hLogoSize = 48;
-      const hLogoX = cx - hLogoSize / 2;
-      const hLogoY = (HEADER_H - hLogoSize) / 2;
-      if (logoBuf) {
-        try {
-          doc.image(logoBuf, hLogoX, hLogoY, { width: hLogoSize, height: hLogoSize });
-        } catch {
-          // skip
-        }
-      }
-
-      // Right: collection name + page number
+      // Left
+      doc.fillColor(BLACK).font("Playfair").fontSize(15).text("Gemone Diamond", MX, 26, { lineBreak: false });
+      doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8).text("ETERNAL LUXURY", MX, 48, { lineBreak: false });
+      // Center logo — square
+      const hLogoSize = 44;
+      drawLogo(cx - hLogoSize / 2, (HEADER_H - hLogoSize) / 2, hLogoSize);
+      // Right
       const rightX = PAGE_W - MX - 240;
-      doc.fillColor(GOLD).font("Playfair").fontSize(11)
-        .text("Gemone Diamond Collection", rightX, 24, { width: 240, align: "right", lineBreak: false });
-      doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8.5)
-        .text(`Page ${pageNum} of ${totalPages}`, rightX, 44, { width: 240, align: "right", lineBreak: false });
-
-      doc.strokeColor(RULE_COLOR).lineWidth(0.5)
-        .moveTo(MX, HEADER_H - 4).lineTo(PAGE_W - MX, HEADER_H - 4).stroke();
+      doc.fillColor(GOLD).font("Playfair").fontSize(11).text("Gemone Diamond Collection", rightX, 22, { width: 240, align: "right", lineBreak: false });
+      doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8.5).text(`Page ${pageNum} of ${totalPages}`, rightX, 42, { width: 240, align: "right", lineBreak: false });
+      doc.strokeColor(RULE_COLOR).lineWidth(0.5).moveTo(MX, HEADER_H - 4).lineTo(PAGE_W - MX, HEADER_H - 4).stroke();
     };
 
     const drawFooter = () => {
       const fy = PAGE_H - FOOTER_H + 12;
-      doc.strokeColor(RULE_COLOR).lineWidth(0.5)
-        .moveTo(MX, fy - 10).lineTo(PAGE_W - MX, fy - 10).stroke();
-      doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(8)
-        .text("G E M O N E   D I A M O N D   ·   F I N E   J E W E L L E R Y", MX, fy, { lineBreak: false });
-      doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(8)
-        .text(MONTH_YEAR, MX, fy, { width: CW, align: "right", lineBreak: false });
+      doc.strokeColor(RULE_COLOR).lineWidth(0.5).moveTo(MX, fy - 10).lineTo(PAGE_W - MX, fy - 10).stroke();
+      doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(8).text("G E M O N E   D I A M O N D   ·   F I N E   J E W E L L E R Y", MX, fy, { lineBreak: false });
+      doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(8).text(MONTH_YEAR, MX, fy, { width: CW, align: "right", lineBreak: false });
     };
 
     const drawGridLines = () => {
       const midX = MX + COL_W;
       const midY = HEADER_H + ROW_H;
-      doc.strokeColor(RULE_COLOR).lineWidth(0.5)
-        .moveTo(midX, HEADER_H).lineTo(midX, HEADER_H + BODY_H).stroke();
-      doc.strokeColor(RULE_COLOR).lineWidth(0.5)
-        .moveTo(MX, midY).lineTo(PAGE_W - MX, midY).stroke();
+      doc.strokeColor(RULE_COLOR).lineWidth(0.5).moveTo(midX, HEADER_H).lineTo(midX, HEADER_H + BODY_H).stroke();
+      doc.strokeColor(RULE_COLOR).lineWidth(0.5).moveTo(MX, midY).lineTo(PAGE_W - MX, midY).stroke();
     };
 
     const renderImage = (buf: Buffer, x: number, y: number, w: number, h: number) => {
-      try {
-        doc.image(buf, x, y, { fit: [w, h], align: "center", valign: "center" });
-      } catch {
-        doc.rect(x, y, w, h).fillColor(LIGHT_BG).fill();
-        doc.rect(x, y, w, h).strokeColor(RULE_COLOR).lineWidth(0.3).stroke();
-      }
+      try { doc.image(buf, x, y, { fit: [w, h], align: "center", valign: "center" }); }
+      catch { doc.rect(x, y, w, h).fillColor(LIGHT_BG).fill(); doc.rect(x, y, w, h).strokeColor(RULE_COLOR).lineWidth(0.3).stroke(); }
     };
 
-    const drawProduct = (
-      item: JewelryItem,
-      cellX: number,
-      cellY: number,
-      config: PricingConfig,
-      ct: "B2B" | "B2C",
-      showCharges: boolean,
-    ) => {
+    // topPadding: extra top offset for bottom-row products (more breathing room between rows)
+    const drawProduct = (item: JewelryItem, cellX: number, cellY: number, config: PricingConfig, ct: "B2B" | "B2C", showCharges: boolean, topPadding = 0) => {
       const allPrices = calcAllKarats(item, config, ct);
       const innerX = cellX + CELL_PAD;
       const innerW = COL_W - CELL_PAD * 2;
-      let y = cellY + CELL_PAD;
+      let y = cellY + CELL_PAD + topPadding;
 
-      // ── Serial No (left) + SKU No (right) ────────────────────────────────
-      const srLabel = `#${String(item.srNo).padStart(3, "0")}`;
-      const skuLabel = `SKU - ${item.skuNo}`;
+      // Sr No (left) + SKU No (right)
       doc.fillColor(GOLD).font("Helvetica-Bold").fontSize(9.5)
-        .text(srLabel, innerX, y, { lineBreak: false });
+        .text(`#${String(item.srNo).padStart(3, "0")}`, innerX, y, { lineBreak: false });
       doc.fillColor(GOLD).font("Helvetica-Bold").fontSize(9.5)
-        .text(skuLabel, innerX, y, { width: innerW, align: "right", lineBreak: false });
-      y += 20;
-
-      // ── Title ─────────────────────────────────────────────────────────────
-      const totalDiamond = item.centerDiamondWeight + item.sideDiamondWeight;
-      doc.fillColor(BLACK).font("Playfair").fontSize(11.5)
-        .text(item.title, innerX, y, { width: innerW, lineBreak: true, height: 48, ellipsis: true });
-      y += 54;
-
-      // ── Subtitle ──────────────────────────────────────────────────────────
-      const subLabel = totalDiamond > 0 ? "LAB GROWN DIAMOND" : "FINE JEWELLERY";
-      doc.fillColor(GOLD_LIGHT).font("Helvetica-Bold").fontSize(8)
-        .text(subLabel, innerX, y, { lineBreak: false });
+        .text(`SKU - ${item.skuNo}`, innerX, y, { width: innerW, align: "right", lineBreak: false });
       y += 18;
 
-      doc.strokeColor(RULE_COLOR).lineWidth(0.3)
-        .moveTo(innerX, y).lineTo(innerX + innerW, y).stroke();
+      // Title
+      const totalDiamond = item.centerDiamondWeight + item.sideDiamondWeight;
+      doc.fillColor(BLACK).font("Playfair").fontSize(11.5)
+        .text(item.title, innerX, y, { width: innerW, lineBreak: true, height: 44, ellipsis: true });
+      y += 34; // tighter gap between title and subtitle
+
+      // Subtitle
+      doc.fillColor(GOLD_LIGHT).font("Helvetica-Bold").fontSize(8)
+        .text(totalDiamond > 0 ? "LAB GROWN DIAMOND" : "FINE JEWELLERY", innerX, y, { lineBreak: false });
+      y += 16;
+
+      doc.strokeColor(RULE_COLOR).lineWidth(0.3).moveTo(innerX, y).lineTo(innerX + innerW, y).stroke();
       y += 8;
 
-      // ── Three images in a row ──────────────────────────────────────────────
+      // Three images
       const imgGap = 8;
       const imgW = Math.floor((innerW - imgGap * 2) / 3);
-      const imgH = showCharges ? 132 : 188;
-
-      const imgSlots = [
-        { url: item.imageLeft, label: "Left" },
-        { url: item.imageCenter, label: "Center" },
-        { url: item.imageRight, label: "Right" },
-      ];
-
-      imgSlots.forEach((slot, idx) => {
+      const imgH = showCharges ? 128 : 182;
+      [{ url: item.imageLeft, label: "Left" }, { url: item.imageCenter, label: "Center" }, { url: item.imageRight, label: "Right" }].forEach((slot, idx) => {
         const ix = innerX + idx * (imgW + imgGap);
         const buf = slot.url ? fetchedImages.get(slot.url) : undefined;
-        if (buf) {
-          renderImage(buf, ix, y, imgW, imgH);
-        } else {
+        if (buf) { renderImage(buf, ix, y, imgW, imgH); }
+        else {
           doc.rect(ix, y, imgW, imgH).fillColor(LIGHT_BG).fill();
           doc.rect(ix, y, imgW, imgH).strokeColor(RULE_COLOR).lineWidth(0.3).stroke();
-          doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(6.5)
-            .text(slot.label, ix, y + imgH / 2 - 4, { width: imgW, align: "center", lineBreak: false });
+          doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(6.5).text(slot.label, ix, y + imgH / 2 - 4, { width: imgW, align: "center", lineBreak: false });
         }
       });
-      y += imgH + 9;
+      y += imgH + 8;
 
-      // ── Details ───────────────────────────────────────────────────────────
+      // Detail rows
       const detailLabelW = innerW * 0.52;
       const detailValW = innerW * 0.48;
-
       const detailRow = (label: string, value: string) => {
-        doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8.5)
-          .text(label, innerX, y, { width: detailLabelW, lineBreak: false });
-        doc.fillColor(DARK_GRAY).font("Helvetica-Bold").fontSize(8.5)
-          .text(value, innerX + detailLabelW, y, { width: detailValW, align: "right", lineBreak: false });
+        doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8.5).text(label, innerX, y, { width: detailLabelW, lineBreak: false });
+        doc.fillColor(DARK_GRAY).font("Helvetica-Bold").fontSize(8.5).text(value, innerX + detailLabelW, y, { width: detailValW, align: "right", lineBreak: false });
         y += 13;
       };
-
       if (item.weight14k > 0) detailRow("Metal Weight", `${item.weight14k.toFixed(3)} g`);
       else if (item.weight10k > 0) detailRow("Metal Weight", `${item.weight10k.toFixed(3)} g`);
       else if (item.weight18k > 0) detailRow("Metal Weight", `${item.weight18k.toFixed(3)} g`);
       if (totalDiamond > 0) detailRow("Diamond", `${totalDiamond.toFixed(2)} ct`);
       detailRow("Color", DIAMOND_COLOR);
       detailRow("Clarity", DIAMOND_CLARITY);
-
       y += 3;
-      doc.strokeColor(RULE_COLOR).lineWidth(0.3)
-        .moveTo(innerX, y).lineTo(innerX + innerW, y).stroke();
+      doc.strokeColor(RULE_COLOR).lineWidth(0.3).moveTo(innerX, y).lineTo(innerX + innerW, y).stroke();
       y += 6;
 
-      // ── Itemized charges ──────────────────────────────────────────────────
+      // Itemized charges
       if (showCharges) {
         const p14 = allPrices["14K"];
         const chargeRow = (label: string, value: string) => {
-          doc.fillColor(MID_GRAY).font("Helvetica").fontSize(7)
-            .text(label, innerX, y, { width: detailLabelW, lineBreak: false });
-          doc.fillColor(DARK_GRAY).font("Helvetica").fontSize(7)
-            .text(value, innerX + detailLabelW, y, { width: detailValW, align: "right", lineBreak: false });
+          doc.fillColor(MID_GRAY).font("Helvetica").fontSize(7).text(label, innerX, y, { width: detailLabelW, lineBreak: false });
+          doc.fillColor(DARK_GRAY).font("Helvetica").fontSize(7).text(value, innerX + detailLabelW, y, { width: detailValW, align: "right", lineBreak: false });
           y += 9;
         };
         chargeRow("Metal (14K)", fmt(p14.metalCalcUSD));
@@ -608,28 +452,22 @@ router.post("/generate", async (req, res) => {
         chargeRow(`Handling (${config.handlingPercent}%)`, fmt(p14.handlingUSD));
         if (ct === "B2C") chargeRow(`Profit (${config.profitPercent}%)`, fmt(p14.profitUSD));
         if (ct === "B2B" && config.adminChargePercent > 0) chargeRow(`Admin (${config.adminChargePercent}%)`, fmt(p14.adminUSD));
-
         y += 3;
-        doc.strokeColor(RULE_COLOR).lineWidth(0.3)
-          .moveTo(innerX, y).lineTo(innerX + innerW, y).stroke();
+        doc.strokeColor(RULE_COLOR).lineWidth(0.3).moveTo(innerX, y).lineTo(innerX + innerW, y).stroke();
         y += 6;
       }
 
-      // ── Karat price strip ─────────────────────────────────────────────────
+      // Karat price strip
       const karats: KaratKey[] = ["10K", "14K", "18K"];
       const karatW = innerW / 3;
-
       karats.forEach((k, idx) => {
         const kx = innerX + idx * karatW;
-        doc.fillColor(GOLD_LIGHT).font("Helvetica").fontSize(8.5)
-          .text(k + " Gold", kx, y, { width: karatW, align: "center", lineBreak: false });
+        doc.fillColor(GOLD_LIGHT).font("Helvetica").fontSize(8.5).text(k + " Gold", kx, y, { width: karatW, align: "center", lineBreak: false });
       });
       y += 14;
-
       karats.forEach((k, idx) => {
         const kx = innerX + idx * karatW;
-        doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(11)
-          .text(fmt(allPrices[k].total), kx, y, { width: karatW, align: "center", lineBreak: false });
+        doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(11).text(fmt(allPrices[k].total), kx, y, { width: karatW, align: "center", lineBreak: false });
       });
     };
 
@@ -641,281 +479,291 @@ router.post("/generate", async (req, res) => {
       drawHeader(pageNum);
       drawFooter();
       drawGridLines();
-
       const pageItems = items.slice(i, i + 4);
+      // Bottom row items get extra top padding (24px) for breathing room between rows
       const positions = [
-        { x: MX, y: HEADER_H },
-        { x: MX + COL_W, y: HEADER_H },
-        { x: MX, y: HEADER_H + ROW_H },
-        { x: MX + COL_W, y: HEADER_H + ROW_H },
+        { x: MX,         y: HEADER_H,         extra: 0  },
+        { x: MX + COL_W, y: HEADER_H,         extra: 0  },
+        { x: MX,         y: HEADER_H + ROW_H, extra: 24 },
+        { x: MX + COL_W, y: HEADER_H + ROW_H, extra: 24 },
       ];
-
       pageItems.forEach((item, idx) => {
-        drawProduct(item, positions[idx].x, positions[idx].y, pricingConfig, catalogType, showItemizedCharges);
+        drawProduct(item, positions[idx].x, positions[idx].y, pricingConfig, catalogType, showItemizedCharges, positions[idx].extra);
       });
     }
 
-    // ══ WHY BUY FROM US PAGE ══════════════════════════════════════════════════
+    // ══ WHY BUY FROM US & CUSTOMIZATION — MERGED PAGE ════════════════════════
     doc.addPage();
+    doc.strokeColor(GOLD).lineWidth(1.2).moveTo(MX, 46).lineTo(PAGE_W - MX, 46).stroke();
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, 50).lineTo(PAGE_W - MX, 50).stroke();
 
-    doc.strokeColor(GOLD).lineWidth(1.2).moveTo(MX, 60).lineTo(PAGE_W - MX, 60).stroke();
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, 64).lineTo(PAGE_W - MX, 64).stroke();
+    // Page heading
+    drawLogo(cx - 22, 58, 44);
+    doc.fillColor(GOLD).font("Playfair").fontSize(32)
+      .text("Why Buy From Us & Customization", 0, 110, { width: PAGE_W, align: "center", lineBreak: false });
+    doc.strokeColor(GOLD).lineWidth(0.6).moveTo(cx - 150, 150).lineTo(cx + 150, 150).stroke();
+    doc.fillColor(GOLD).circle(cx, 150, 2.5).fill();
+    doc.fillColor(MID_GRAY).font("Helvetica").fontSize(9)
+      .text("Crafted with passion · Your vision, our craftsmanship · Unlimited possibilities", 0, 160, { width: PAGE_W, align: "center", lineBreak: false });
 
-    // Logo
-    if (logoBuf) {
-      try {
-        doc.image(logoBuf, cx - 35, 80, { width: 70, height: 70 });
-      } catch { /* skip */ }
-    }
+    // ─ Section 1: WHY BUY FROM US ─
+    const sec1Y = 184;
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, sec1Y).lineTo(PAGE_W - MX, sec1Y).stroke();
+    doc.strokeColor(GOLD).lineWidth(1.0).moveTo(MX, sec1Y + 3).lineTo(PAGE_W - MX, sec1Y + 3).stroke();
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, sec1Y + 6).lineTo(PAGE_W - MX, sec1Y + 6).stroke();
 
-    doc.fillColor(GOLD).font("Playfair").fontSize(42)
-      .text("Why Buy From Us", 0, 166, { width: PAGE_W, align: "center", lineBreak: false });
-
-    doc.strokeColor(GOLD).lineWidth(0.8)
-      .moveTo(cx - 120, 224).lineTo(cx + 120, 224).stroke();
-    doc.fillColor(GOLD).circle(cx, 224, 3).fill();
-
-    doc.fillColor(MID_GRAY).font("Helvetica").fontSize(10)
-      .text("Crafted with passion. Delivered with trust.", 0, 240, { width: PAGE_W, align: "center", lineBreak: false });
-
-    // Triple rule
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, 278).lineTo(PAGE_W - MX, 278).stroke();
-    doc.strokeColor(GOLD).lineWidth(1.0).moveTo(MX, 281).lineTo(PAGE_W - MX, 281).stroke();
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, 284).lineTo(PAGE_W - MX, 284).stroke();
-
-    // Three benefit cards
-    const whyItems = [
-      {
-        num: "01",
-        title: "No Middleman",
-        body: "Direct from manufacturing to end user — you get the best quality at the most competitive prices, every time.",
-      },
-      {
-        num: "02",
-        title: "In-House Quality Control",
-        body: "2 in-house Gemmologists perform thorough QC on every item before shipment, ensuring flawless excellence.",
-      },
-      {
-        num: "03",
-        title: "Custom & Bespoke Jewellery",
-        body: "We are specialized in creating custom and bespoke jewellery — your vision, crafted to perfection.",
-      },
-    ];
-
-    const cardW = 240;
-    const cardH = 260;
-    const cardGap = (CW - cardW * 3) / 2;
-    const cardStartX = MX;
-    const cardY = 316;
-
-    whyItems.forEach((wi, idx) => {
-      const cx2 = cardStartX + idx * (cardW + cardGap);
-
-      // Card background
-      doc.rect(cx2, cardY, cardW, cardH).fillColor("#FFFDF7").fill();
-      doc.rect(cx2, cardY, cardW, cardH).strokeColor(GOLD_LIGHT).lineWidth(0.6).stroke();
-
-      // Gold top accent
-      doc.rect(cx2, cardY, cardW, 4).fillColor(GOLD).fill();
-
-      // Number
-      doc.fillColor(GOLD).font("Playfair").fontSize(36)
-        .text(wi.num, cx2, cardY + 24, { width: cardW, align: "center", lineBreak: false });
-
-      // Divider
-      doc.strokeColor(GOLD_LIGHT).lineWidth(0.4)
-        .moveTo(cx2 + 40, cardY + 74).lineTo(cx2 + cardW - 40, cardY + 74).stroke();
-
-      // Title
-      doc.fillColor(BLACK).font("Playfair").fontSize(14)
-        .text(wi.title, cx2 + 20, cardY + 88, { width: cardW - 40, align: "center", lineBreak: true });
-
-      // Body
-      doc.fillColor(MID_GRAY).font("Helvetica").fontSize(9.5)
-        .text(wi.body, cx2 + 20, cardY + 130, { width: cardW - 40, align: "center", lineBreak: true });
-    });
-
-    // Bottom
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, PAGE_H - 80).lineTo(PAGE_W - MX, PAGE_H - 80).stroke();
-    doc.strokeColor(GOLD).lineWidth(1.2).moveTo(MX, PAGE_H - 76).lineTo(PAGE_W - MX, PAGE_H - 76).stroke();
     doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(8)
-      .text("G E M O N E   D I A M O N D   ·   F I N E   J E W E L L E R Y", 0, PAGE_H - 60, { width: PAGE_W, align: "center", lineBreak: false });
-    doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(7.5)
-      .text(MONTH_YEAR, 0, PAGE_H - 44, { width: PAGE_W, align: "center", lineBreak: false });
+      .text("W H Y   B U Y   F R O M   U S", 0, sec1Y + 16, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 2 });
 
-    // ══ CUSTOMIZATION PAGE ════════════════════════════════════════════════════
-    doc.addPage();
+    const w1IconR = 38;
+    const w1IconCenterY = sec1Y + 16 + 24 + w1IconR;
+    const w1XPositions = [cx - 280, cx, cx + 280];
 
-    doc.strokeColor(GOLD).lineWidth(1.2).moveTo(MX, 60).lineTo(PAGE_W - MX, 60).stroke();
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, 64).lineTo(PAGE_W - MX, 64).stroke();
+    // WHY Icon 1: Factory / No Middleman (building icon)
+    iconCircle(w1XPositions[0], w1IconCenterY, w1IconR);
+    { const bx = w1XPositions[0]; const by = w1IconCenterY;
+      // Simple factory: base rect + two squares on top
+      doc.rect(bx - 20, by - 6, 40, 18).strokeColor(GOLD_LIGHT).lineWidth(1).stroke();
+      doc.rect(bx - 14, by - 22, 10, 16).strokeColor(GOLD_LIGHT).lineWidth(1).stroke();
+      doc.rect(bx + 4, by - 22, 10, 16).strokeColor(GOLD_LIGHT).lineWidth(1).stroke();
+      // Chimney
+      doc.moveTo(bx - 9, by - 28).lineTo(bx - 9, by - 22).strokeColor(GOLD_LIGHT).lineWidth(1).stroke();
+      doc.moveTo(bx + 9, by - 28).lineTo(bx + 9, by - 22).strokeColor(GOLD_LIGHT).lineWidth(1).stroke(); }
 
-    // Logo
-    if (logoBuf) {
-      try {
-        doc.image(logoBuf, cx - 35, 80, { width: 70, height: 70 });
-      } catch { /* skip */ }
-    }
+    // WHY Icon 2: Magnifying glass / QC
+    iconCircle(w1XPositions[1], w1IconCenterY, w1IconR);
+    { const mx2 = w1XPositions[1]; const my2 = w1IconCenterY - 4;
+      doc.circle(mx2 - 4, my2 - 4, 14).strokeColor(GOLD_LIGHT).lineWidth(1.5).stroke();
+      doc.moveTo(mx2 + 6, my2 + 6).lineTo(mx2 + 18, my2 + 18).strokeColor(GOLD_LIGHT).lineWidth(2).stroke(); }
 
-    doc.fillColor(GOLD).font("Playfair").fontSize(42)
-      .text("Customization", 0, 166, { width: PAGE_W, align: "center", lineBreak: false });
+    // WHY Icon 3: Custom ring / bespoke
+    iconCircle(w1XPositions[2], w1IconCenterY, w1IconR);
+    { const rx = w1XPositions[2]; const ry = w1IconCenterY;
+      doc.circle(rx, ry, 18).strokeColor(GOLD_LIGHT).lineWidth(2).stroke();
+      doc.circle(rx, ry, 10).strokeColor(GOLD).lineWidth(1).stroke();
+      // Diamond on top
+      doc.moveTo(rx, ry - 28).lineTo(rx + 8, ry - 20).lineTo(rx, ry - 14).lineTo(rx - 8, ry - 20).closePath().fillColor(GOLD_LIGHT).fill(); }
 
-    doc.strokeColor(GOLD).lineWidth(0.8)
-      .moveTo(cx - 120, 224).lineTo(cx + 120, 224).stroke();
-    doc.fillColor(GOLD).circle(cx, 224, 3).fill();
-
-    doc.fillColor(MID_GRAY).font("Helvetica").fontSize(10)
-      .text("Your vision. Our craftsmanship. Unlimited possibilities.", 0, 240, { width: PAGE_W, align: "center", lineBreak: false });
-
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, 278).lineTo(PAGE_W - MX, 278).stroke();
-    doc.strokeColor(GOLD).lineWidth(1.0).moveTo(MX, 281).lineTo(PAGE_W - MX, 281).stroke();
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, 284).lineTo(PAGE_W - MX, 284).stroke();
-
-    // Four customization points as styled list
-    const customItems = [
-      {
-        num: "01",
-        title: "Your Thought to Our Realisation",
-        body: "Any design you can imagine, we can create. From concept to finished piece, we bring your ideas to life.",
-      },
-      {
-        num: "02",
-        title: "Any Style, Any Influence",
-        body: "Hiphop, Bespoke, Vintage, Brand-inspired — whatever design direction you choose, we make it happen.",
-      },
-      {
-        num: "03",
-        title: "Custom Crafted Just for You",
-        body: "Jewelry made to your exact specifications in any size you need — a truly one-of-a-kind piece.",
-      },
-      {
-        num: "04",
-        title: "All Metals, All Possibilities",
-        body: "We craft in 10K, 14K, 18K Gold, Platinum & Silver — choose the metal that suits your style and budget.",
-      },
+    const w1LabelY = w1IconCenterY + w1IconR + 10;
+    const w1Data = [
+      { title: "No Middleman", body: "Manufacturing direct\nto end user" },
+      { title: "In-House QC", body: "2 Gemmologists inspect\nevery item before shipment" },
+      { title: "Custom & Bespoke", body: "Specialized in custom\n& bespoke jewellery" },
     ];
-
-    const custCardW = 195;
-    const custCardH = 230;
-    const custGap = (CW - custCardW * 4) / 3;
-    const custStartX = MX;
-    const custCardY = 316;
-
-    customItems.forEach((ci, idx) => {
-      const cx3 = custStartX + idx * (custCardW + custGap);
-
-      doc.rect(cx3, custCardY, custCardW, custCardH).fillColor("#FFFDF7").fill();
-      doc.rect(cx3, custCardY, custCardW, custCardH).strokeColor(GOLD_LIGHT).lineWidth(0.6).stroke();
-      doc.rect(cx3, custCardY, custCardW, 4).fillColor(GOLD).fill();
-
-      doc.fillColor(GOLD).font("Playfair").fontSize(28)
-        .text(ci.num, cx3, custCardY + 18, { width: custCardW, align: "center", lineBreak: false });
-
-      doc.strokeColor(GOLD_LIGHT).lineWidth(0.4)
-        .moveTo(cx3 + 30, custCardY + 58).lineTo(cx3 + custCardW - 30, custCardY + 58).stroke();
-
-      doc.fillColor(BLACK).font("Playfair").fontSize(11)
-        .text(ci.title, cx3 + 14, custCardY + 70, { width: custCardW - 28, align: "center", lineBreak: true });
-
+    w1XPositions.forEach((wx, wi) => {
+      doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(11)
+        .text(w1Data[wi].title, wx - 70, w1LabelY, { width: 140, align: "center", lineBreak: false });
       doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8.5)
-        .text(ci.body, cx3 + 14, custCardY + 126, { width: custCardW - 28, align: "center", lineBreak: true });
+        .text(w1Data[wi].body, wx - 70, w1LabelY + 17, { width: 140, align: "center", lineBreak: true });
     });
 
-    // Bottom
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, PAGE_H - 80).lineTo(PAGE_W - MX, PAGE_H - 80).stroke();
-    doc.strokeColor(GOLD).lineWidth(1.2).moveTo(MX, PAGE_H - 76).lineTo(PAGE_W - MX, PAGE_H - 76).stroke();
+    // ─ Section 2: CUSTOMIZATION ─
+    const sec2Y = w1LabelY + 68;
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, sec2Y).lineTo(PAGE_W - MX, sec2Y).stroke();
+    doc.strokeColor(GOLD).lineWidth(1.0).moveTo(MX, sec2Y + 3).lineTo(PAGE_W - MX, sec2Y + 3).stroke();
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, sec2Y + 6).lineTo(PAGE_W - MX, sec2Y + 6).stroke();
+
     doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(8)
-      .text("G E M O N E   D I A M O N D   ·   F I N E   J E W E L L E R Y", 0, PAGE_H - 60, { width: PAGE_W, align: "center", lineBreak: false });
-    doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(7.5)
-      .text(MONTH_YEAR, 0, PAGE_H - 44, { width: PAGE_W, align: "center", lineBreak: false });
+      .text("C U S T O M I Z A T I O N", 0, sec2Y + 16, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 2 });
+
+    const c1IconR = 36;
+    const c1IconCenterY = sec2Y + 16 + 22 + c1IconR;
+    const c1XPositions = [cx - 330, cx - 110, cx + 110, cx + 330];
+
+    // CUSTOM Icon 1: Lightbulb (Your Thought)
+    iconCircle(c1XPositions[0], c1IconCenterY, c1IconR);
+    { const lbx = c1XPositions[0]; const lby = c1IconCenterY - 2;
+      doc.circle(lbx, lby - 4, 12).strokeColor(GOLD_LIGHT).lineWidth(1.2).stroke();
+      doc.moveTo(lbx - 6, lby + 8).lineTo(lbx + 6, lby + 8).strokeColor(GOLD_LIGHT).lineWidth(1.2).stroke();
+      doc.moveTo(lbx - 4, lby + 12).lineTo(lbx + 4, lby + 12).strokeColor(GOLD_LIGHT).lineWidth(1.2).stroke();
+      doc.moveTo(lbx, lby - 20).lineTo(lbx, lby - 24).strokeColor(GOLD_LIGHT).lineWidth(1).stroke();
+      doc.moveTo(lbx + 12, lby - 14).lineTo(lbx + 15, lby - 17).strokeColor(GOLD_LIGHT).lineWidth(1).stroke();
+      doc.moveTo(lbx - 12, lby - 14).lineTo(lbx - 15, lby - 17).strokeColor(GOLD_LIGHT).lineWidth(1).stroke(); }
+
+    // CUSTOM Icon 2: Star (Any Style)
+    iconCircle(c1XPositions[1], c1IconCenterY, c1IconR);
+    { const s2Cx = c1XPositions[1]; const s2Cy = c1IconCenterY;
+      const s2Path: number[][] = [];
+      for (let si = 0; si < 10; si++) { const a = (si * Math.PI) / 5 - Math.PI / 2; const r = si % 2 === 0 ? 20 : 9; s2Path.push([s2Cx + r * Math.cos(a), s2Cy + r * Math.sin(a)]); }
+      doc.moveTo(s2Path[0][0], s2Path[0][1]);
+      for (let si = 1; si < s2Path.length; si++) doc.lineTo(s2Path[si][0], s2Path[si][1]);
+      doc.closePath().strokeColor(GOLD_LIGHT).lineWidth(1).stroke(); }
+
+    // CUSTOM Icon 3: Scissors / Craft (Custom Crafted)
+    iconCircle(c1XPositions[2], c1IconCenterY, c1IconR);
+    { const scx = c1XPositions[2]; const scy = c1IconCenterY;
+      doc.circle(scx - 8, scy + 10, 7).strokeColor(GOLD_LIGHT).lineWidth(1.2).stroke();
+      doc.circle(scx + 8, scy + 10, 7).strokeColor(GOLD_LIGHT).lineWidth(1.2).stroke();
+      doc.moveTo(scx - 8, scy + 3).lineTo(scx, scy - 14).strokeColor(GOLD_LIGHT).lineWidth(1.2).stroke();
+      doc.moveTo(scx + 8, scy + 3).lineTo(scx, scy - 14).strokeColor(GOLD_LIGHT).lineWidth(1.2).stroke(); }
+
+    // CUSTOM Icon 4: Rings (All Metals)
+    iconCircle(c1XPositions[3], c1IconCenterY, c1IconR);
+    { const rmx = c1XPositions[3]; const rmy = c1IconCenterY;
+      doc.circle(rmx - 10, rmy, 14).strokeColor(GOLD_LIGHT).lineWidth(1.5).stroke();
+      doc.circle(rmx + 10, rmy, 14).strokeColor(GOLD).lineWidth(1.5).stroke(); }
+
+    const c1LabelY = c1IconCenterY + c1IconR + 10;
+    const c1Data = [
+      { title: "Your Idea Realised", body: "Any design you\nimagine, we create" },
+      { title: "Any Style", body: "Hiphop, Bespoke,\nVintage — any design" },
+      { title: "Crafted for You", body: "Any design, any size,\nmade just for you" },
+      { title: "All Metals", body: "10K, 14K, 18K Gold,\nPlatinum & Silver" },
+    ];
+    c1XPositions.forEach((cpx, ci) => {
+      doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(10)
+        .text(c1Data[ci].title, cpx - 60, c1LabelY, { width: 120, align: "center", lineBreak: false });
+      doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8)
+        .text(c1Data[ci].body, cpx - 60, c1LabelY + 15, { width: 120, align: "center", lineBreak: true });
+    });
+
+    drawPageFooter();
+
+    // ══ PAYMENT TERMS PAGE ════════════════════════════════════════════════════
+    doc.addPage();
+    doc.strokeColor(GOLD).lineWidth(1.2).moveTo(MX, 60).lineTo(PAGE_W - MX, 60).stroke();
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, 64).lineTo(PAGE_W - MX, 64).stroke();
+
+    drawLogo(cx - 28, 78, 56);
+
+    doc.fillColor(GOLD).font("Playfair").fontSize(38)
+      .text("Payment Terms", 0, 146, { width: PAGE_W, align: "center", lineBreak: false });
+    doc.strokeColor(GOLD).lineWidth(0.6).moveTo(cx - 140, 194).lineTo(cx + 140, 194).stroke();
+    doc.fillColor(GOLD).circle(cx, 194, 3).fill();
+    doc.fillColor(MID_GRAY).font("Helvetica").fontSize(9.5)
+      .text("Transparent. Flexible. Trusted worldwide.", 0, 210, { width: PAGE_W, align: "center", lineBreak: false });
+
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, 236).lineTo(PAGE_W - MX, 236).stroke();
+    doc.strokeColor(GOLD).lineWidth(1.0).moveTo(MX, 239).lineTo(PAGE_W - MX, 239).stroke();
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, 242).lineTo(PAGE_W - MX, 242).stroke();
+
+    const ptX = MX + 40;
+    const ptW = CW - 80;
+    let ptY = 264;
+
+    const ptSection = (title: string) => {
+      doc.fillColor(GOLD).font("Playfair").fontSize(14).text(title, ptX, ptY, { lineBreak: false });
+      ptY += 24;
+      doc.strokeColor(GOLD_LIGHT).lineWidth(0.3).moveTo(ptX, ptY).lineTo(ptX + ptW, ptY).stroke();
+      ptY += 8;
+    };
+
+    const ptBullet = (text: string) => {
+      doc.fillColor(GOLD_LIGHT).font("Helvetica-Bold").fontSize(10).text("•", ptX, ptY, { lineBreak: false });
+      doc.fillColor(DARK_GRAY).font("Helvetica").fontSize(9.5)
+        .text(text, ptX + 16, ptY, { width: ptW - 16, lineBreak: true });
+      const lines = Math.ceil(text.length / 90);
+      ptY += Math.max(16, lines * 13) + 4;
+    };
+
+    // Section 1: Payment Methods
+    ptSection("Payment Methods");
+    ptBullet("We accept payment in INR via our Indian bank account, as well as USD via our US-registered firm bank account — offering you full flexibility.");
+    ptBullet("We also accept PayPal (paypal.com) — please note that PayPal transactions carry an additional 10% charge.");
+    ptY += 8;
+
+    // Section 2: Handling Time
+    ptSection("Handling Time");
+    ptBullet("Handling time varies based on total order size and complexity — typically ranging from 3 business days up to 15 business days.");
+    ptY += 8;
+
+    // Section 3: Shipping Options
+    ptSection("Shipping Options");
+    ptBullet("INR Bank Transfer — We ship via Brinks · Malca-Amit · FedEx: 3–4 day fully insured express shipping at a flat cost of USD 200, regardless of order value.");
+    ptBullet("USD Bank Transfer — We ship via UPS or USPS: 9–12 day delivery at USD 120–140. Best suited for orders up to USD 7,000 (lower declared value to optimize import duties in 99% of cases).");
+    ptBullet("PayPal Payment (10% surcharge) — We ship via UPS.com express at USD 120. Additional shipping options are available upon request.");
+    ptY += 8;
+
+    // Note
+    doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(8.5)
+      .text("For custom shipping arrangements or further details, please contact our team directly.", ptX, ptY, { width: ptW, align: "center", lineBreak: true });
+
+    drawPageFooter();
 
     // ══ THANK YOU PAGE ════════════════════════════════════════════════════════
     doc.addPage();
-
     doc.strokeColor(GOLD).lineWidth(1.2).moveTo(MX, 60).lineTo(PAGE_W - MX, 60).stroke();
     doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, 64).lineTo(PAGE_W - MX, 64).stroke();
 
-    [cx - 12, cx, cx + 12].forEach((dx) => {
-      doc.fillColor(GOLD).circle(dx, 100, 3).fill();
-    });
+    [cx - 12, cx, cx + 12].forEach((dx) => doc.fillColor(GOLD).circle(dx, 100, 3).fill());
 
-    doc.fillColor(GOLD).font("Playfair").fontSize(62)
-      .text("Thank You", 0, 124, { width: PAGE_W, align: "center", lineBreak: false });
+    doc.fillColor(GOLD).font("Playfair").fontSize(58)
+      .text("Thank You", 0, 120, { width: PAGE_W, align: "center", lineBreak: false });
+    doc.fillColor(BLACK).font("Playfair").fontSize(17)
+      .text("for visiting our catalog", 0, 192, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 2 });
 
-    doc.fillColor(BLACK).font("Playfair").fontSize(18)
-      .text("for visiting our catalog", 0, 202, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 2 });
-
-    doc.strokeColor(GOLD).lineWidth(0.8)
-      .moveTo(cx - 100, 238).lineTo(cx + 100, 238).stroke();
-    doc.fillColor(GOLD).circle(cx, 238, 3).fill();
-
+    doc.strokeColor(GOLD).lineWidth(0.8).moveTo(cx - 100, 226).lineTo(cx + 100, 226).stroke();
+    doc.fillColor(GOLD).circle(cx, 226, 3).fill();
     doc.fillColor(MID_GRAY).font("Helvetica").fontSize(10)
-      .text(
-        "We look forward to crafting your next masterpiece.",
-        0, 256, { width: PAGE_W, align: "center", lineBreak: false }
-      );
+      .text("We look forward to crafting your next masterpiece.", 0, 242, { width: PAGE_W, align: "center", lineBreak: false });
 
-    // Contact Us section
-    doc.strokeColor(RULE_COLOR).lineWidth(0.4)
-      .moveTo(MX + 60, 300).lineTo(PAGE_W - MX - 60, 300).stroke();
-
+    // Contact Us
+    doc.strokeColor(RULE_COLOR).lineWidth(0.4).moveTo(MX + 60, 280).lineTo(PAGE_W - MX - 60, 280).stroke();
     doc.fillColor(GOLD).font("Playfair").fontSize(16)
-      .text("Contact Us", 0, 318, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 2 });
-
+      .text("Contact Us", 0, 296, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 2 });
     doc.fillColor(MID_GRAY).font("Helvetica").fontSize(9)
-      .text("Our team is always ready to assist you", 0, 342, { width: PAGE_W, align: "center", lineBreak: false });
+      .text("Our team is always ready to assist you", 0, 318, { width: PAGE_W, align: "center", lineBreak: false });
 
-    // Phone numbers
-    const phoneY = 376;
-    const phoneBoxW = 200;
-    const phoneBoxH = 54;
-    const phone1X = cx - phoneBoxW - 20;
-    const phone2X = cx + 20;
+    // 4 boxes: 2x2 grid
+    const boxW = (CW - 24) / 2;
+    const boxH = 90;
+    const boxGap = 24;
+    const boxRowGap = 16;
+    const box1X = MX;
+    const box2X = MX + boxW + boxGap;
+    const boxRow1Y = 350;
+    const boxRow2Y = boxRow1Y + boxH + boxRowGap;
 
-    const drawPhoneBox = (x: number, y: number, number: string, label: string) => {
-      doc.rect(x, y, phoneBoxW, phoneBoxH).strokeColor(GOLD_LIGHT).lineWidth(0.6).stroke();
-      doc.fillColor(GOLD_LIGHT).font("Helvetica").fontSize(7)
-        .text(label, x, y + 8, { width: phoneBoxW, align: "center", lineBreak: false });
-      doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(13)
-        .text(number, x, y + 22, { width: phoneBoxW, align: "center", lineBreak: false });
+    const drawContactBox = (x: number, y: number, w: number, h: number, label: string, lines: { text: string; size?: number; bold?: boolean }[]) => {
+      doc.rect(x, y, w, h).strokeColor(GOLD_LIGHT).lineWidth(0.6).stroke();
+      doc.fillColor(GOLD_LIGHT).font("Helvetica-Bold").fontSize(7)
+        .text(label, x, y + 9, { width: w, align: "center", lineBreak: false });
+      doc.strokeColor(GOLD_LIGHT).lineWidth(0.3).moveTo(x + 20, y + 20).lineTo(x + w - 20, y + 20).stroke();
+      let lineY = y + 27;
+      for (const line of lines) {
+        const sz = line.size ?? 10;
+        const fn = line.bold !== false ? "Helvetica-Bold" : "Helvetica";
+        doc.fillColor(BLACK).font(fn).fontSize(sz)
+          .text(line.text, x, lineY, { width: w, align: "center", lineBreak: false });
+        lineY += sz + 5;
+      }
     };
 
-    drawPhoneBox(phone1X, phoneY, "+91 63513 49740", "SALES & ENQUIRY");
-    drawPhoneBox(phone2X, phoneY, "+91 93755 20003", "SUPPORT");
+    // Box 1 (top-left): Phone Numbers
+    drawContactBox(box1X, boxRow1Y, boxW, boxH, "PHONE — SALES & SUPPORT", [
+      { text: "+91 63513 49740", size: 12 },
+      { text: "Sales & Enquiry", size: 8, bold: false },
+      { text: "+91 93755 20003", size: 12 },
+      { text: "Support", size: 8, bold: false },
+    ]);
 
-    // Email boxes
-    const emailY = phoneY + phoneBoxH + 16;
-    const emailBoxW = 230;
+    // Box 2 (top-right): Emails
+    drawContactBox(box2X, boxRow1Y, boxW, boxH, "EMAIL", [
+      { text: "Gemone.diamonds@gmail.com", size: 10 },
+      { text: "info@gemonediamond.com", size: 10 },
+    ]);
 
-    const drawEmailBox = (x: number, y: number, email: string, label: string) => {
-      doc.rect(x, y, emailBoxW, phoneBoxH).strokeColor(GOLD_LIGHT).lineWidth(0.6).stroke();
-      doc.fillColor(GOLD_LIGHT).font("Helvetica").fontSize(7)
-        .text(label, x, y + 8, { width: emailBoxW, align: "center", lineBreak: false });
-      doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(10)
-        .text(email, x, y + 24, { width: emailBoxW, align: "center", lineBreak: false });
-    };
+    // Box 3 (bottom-left): Website
+    drawContactBox(box1X, boxRow2Y, boxW, boxH, "WEBSITE", [
+      { text: "https://gemonediamond.com", size: 11 },
+      { text: "Visit us for the full collection", size: 8, bold: false },
+    ]);
 
-    const email1X = cx - emailBoxW - 20;
-    const email2X = cx + 20;
-    drawEmailBox(email1X, emailY, "Gemone.diamonds@gmail.com", "EMAIL");
-    drawEmailBox(email2X, emailY, "info@gemonediamond.com", "EMAIL");
+    // Box 4 (bottom-right): Social Media
+    drawContactBox(box2X, boxRow2Y, boxW, boxH, "SOCIAL MEDIA", [
+      { text: "@gemonellc", size: 11 },
+      { text: "Instagram  ·  Facebook", size: 8, bold: false },
+      { text: "@gemonediamondUSA", size: 11 },
+      { text: "Instagram  ·  Facebook", size: 8, bold: false },
+    ]);
 
-    // Website
-    const websiteY = emailY + phoneBoxH + 16;
-    const websiteBoxW = 300;
-    doc.rect(cx - websiteBoxW / 2, websiteY, websiteBoxW, phoneBoxH).strokeColor(GOLD).lineWidth(0.8).stroke();
-    doc.fillColor(GOLD_LIGHT).font("Helvetica").fontSize(7)
-      .text("WEBSITE", cx - websiteBoxW / 2, websiteY + 8, { width: websiteBoxW, align: "center", lineBreak: false });
-    doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(12)
-      .text("https://gemonediamond.com", cx - websiteBoxW / 2, websiteY + 24, { width: websiteBoxW, align: "center", lineBreak: false });
+    // Bottom footer
+    doc.strokeColor(RULE_COLOR).lineWidth(0.4)
+      .moveTo(MX + 60, boxRow2Y + boxH + 24).lineTo(PAGE_W - MX - 60, boxRow2Y + boxH + 24).stroke();
+    doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(8.5)
+      .text("Authenticity  ·  Commitment  ·  Quality", 0, boxRow2Y + boxH + 38, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 1 });
 
-    // Bottom rule + footer
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, PAGE_H - 80).lineTo(PAGE_W - MX, PAGE_H - 80).stroke();
-    doc.strokeColor(GOLD).lineWidth(1.2).moveTo(MX, PAGE_H - 76).lineTo(PAGE_W - MX, PAGE_H - 76).stroke();
-
-    doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(8)
-      .text("G E M O N E   D I A M O N D   ·   F I N E   J E W E L L E R Y", 0, PAGE_H - 60, { width: PAGE_W, align: "center", lineBreak: false });
-    doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(7.5)
-      .text(MONTH_YEAR, 0, PAGE_H - 44, { width: PAGE_W, align: "center", lineBreak: false });
+    drawPageFooter();
 
     doc.end();
   } catch (err) {
