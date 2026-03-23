@@ -694,12 +694,11 @@ router.post("/generate", async (req, res) => {
     const boxRow1Y = 350;
     const boxRow2Y = boxRow1Y + boxH + boxRowGap;
 
-    const drawContactBox = (x: number, y: number, w: number, h: number, label: string, lines: { text: string; size?: number; bold?: boolean }[]) => {
+    const drawContactBox = (x: number, y: number, w: number, h: number, label: string, lines: { text: string; size?: number; bold?: boolean; url?: string }[]) => {
       doc.rect(x, y, w, h).strokeColor(GOLD_LIGHT).lineWidth(0.6).stroke();
       doc.fillColor(GOLD_LIGHT).font("Helvetica-Bold").fontSize(7)
         .text(label, x, y + 9, { width: w, align: "center", lineBreak: false });
       doc.strokeColor(GOLD_LIGHT).lineWidth(0.3).moveTo(x + 20, y + 20).lineTo(x + w - 20, y + 20).stroke();
-      // Vertically center content in the remaining box space
       const headerH = 22;
       const contentH = lines.reduce((acc, l) => acc + (l.size ?? 10) + 6, 0);
       const remainingH = h - headerH;
@@ -709,14 +708,18 @@ router.post("/generate", async (req, res) => {
         const fn = line.bold !== false ? "Helvetica-Bold" : "Helvetica";
         doc.fillColor(BLACK).font(fn).fontSize(sz)
           .text(line.text, x, lineY, { width: w, align: "center", lineBreak: false });
+        // Add clickable link overlay covering the full row width
+        if (line.url) {
+          doc.link(x + 20, lineY - 2, w - 40, sz + 6, line.url);
+        }
         lineY += sz + 6;
       }
     };
 
-    // Box 1 (top-left): Phone Numbers — both numbers, label at bottom
+    // Box 1 (top-left): Phone Numbers — WhatsApp clickable links
     drawContactBox(box1X, boxRow1Y, boxW, boxH, "PHONE", [
-      { text: "+91 63513 49740", size: 12 },
-      { text: "+91 93755 20003", size: 12 },
+      { text: "+91 63513 49740", size: 12, url: "https://wa.me/916351349740" },
+      { text: "+91 93755 20003", size: 12, url: "https://wa.me/919375520003" },
       { text: "Sales & Enquiry", size: 8, bold: false },
     ]);
 
@@ -760,6 +763,8 @@ router.post("/generate", async (req, res) => {
       doc.circle(igX + iconSz - 3.5, igY + 3.5, 1.2).fillColor(GOLD).fill();
       doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(10)
         .text("@gemonellc", igX + iconSz + iconTextGap, smStartY + (smRowH - 10) / 2, { lineBreak: false });
+      // Clickable Instagram link covering the full row
+      doc.link(rowStartX, smStartY, bw - (rowStartX - bx) - 20, smRowH, "https://www.instagram.com/gemonellc/");
 
       // ── Facebook icon (circle with 'f') ───────────────────────────────────
       const fb2Y = smStartY + smRowH + smGap;
