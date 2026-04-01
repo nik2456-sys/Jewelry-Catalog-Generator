@@ -232,54 +232,63 @@ router.post("/generate", async (req, res) => {
     // ══ COVER PAGE ═══════════════════════════════════════════════════════════
     doc.addPage();
 
-    doc.strokeColor(GOLD).lineWidth(1.2).moveTo(MX, 50).lineTo(PAGE_W - MX, 50).stroke();
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, 54).lineTo(PAGE_W - MX, 54).stroke();
+    // ── Top decorative border ─────────────────────────────────────────────────
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, 38).lineTo(PAGE_W - MX, 38).stroke();
+    doc.strokeColor(GOLD).lineWidth(1.2).moveTo(MX, 43).lineTo(PAGE_W - MX, 43).stroke();
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, 48).lineTo(PAGE_W - MX, 48).stroke();
 
-    // Logo — full brand logo (larger, includes GEMONE text)
-    const coverLogoSize = 210;
-    const coverLogoY = 60;
+    // ── Logo ──────────────────────────────────────────────────────────────────
+    const coverLogoSize = 200;
+    const coverLogoY = 58;
     drawLogo(cx - coverLogoSize / 2, coverLogoY, coverLogoSize);
 
-    // Elegant divider straight after logo
-    const tripleRuleY = coverLogoY + coverLogoSize + 22;
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, tripleRuleY).lineTo(PAGE_W - MX, tripleRuleY).stroke();
-    doc.strokeColor(GOLD).lineWidth(1.0).moveTo(MX, tripleRuleY + 3).lineTo(PAGE_W - MX, tripleRuleY + 3).stroke();
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, tripleRuleY + 6).lineTo(PAGE_W - MX, tripleRuleY + 6).stroke();
+    // ── Tagline beneath logo ──────────────────────────────────────────────────
+    const taglineY = coverLogoY + coverLogoSize + 10;
+    doc.fillColor(GOLD_LIGHT).font("Playfair").fontSize(10)
+      .text("F I N E   J E W E L L E R Y   ·   E T E R N A L   L U X U R Y", 0, taglineY, { width: PAGE_W, align: "center", lineBreak: false });
 
-    // ── 4 Core Icons ────────────────────────────────────────────────────────
-    const iconY = tripleRuleY + 28;
-    const iconR = 46;
-    const iconXs = [cx - 340, cx - 113, cx + 113, cx + 340];
-    const iconLabelW = 140;
+    // ── Elegant section divider ───────────────────────────────────────────────
+    const divider1Y = taglineY + 26;
+    const dividerInnerMX = MX + 120;
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.3).moveTo(MX, divider1Y).lineTo(PAGE_W - MX, divider1Y).stroke();
+    doc.strokeColor(GOLD).lineWidth(0.9).moveTo(dividerInnerMX, divider1Y + 4).lineTo(PAGE_W - dividerInnerMX, divider1Y + 4).stroke();
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.3).moveTo(MX, divider1Y + 8).lineTo(PAGE_W - MX, divider1Y + 8).stroke();
 
-    // Icon 1: Globe
+    // ── 4 Signature Statistics (Values) ──────────────────────────────────────
+    const iconY = divider1Y + 30;
+    const iconR = 42;
+    const iconXs = [cx - 330, cx - 110, cx + 110, cx + 330];
+    const iconLabelW = 150;
+
+    // Icon 1: Globe (Worldwide)
     iconCircle(iconXs[0], iconY + iconR, iconR);
-    doc.ellipse(iconXs[0], iconY + iconR, iconR * 0.6, iconR * 0.22).strokeColor(GOLD_LIGHT).lineWidth(0.6).stroke();
-    doc.moveTo(iconXs[0], iconY + iconR - iconR * 0.85).lineTo(iconXs[0], iconY + iconR + iconR * 0.85).strokeColor(GOLD_LIGHT).lineWidth(0.6).stroke();
-    doc.moveTo(iconXs[0] - iconR * 0.85, iconY + iconR).lineTo(iconXs[0] + iconR * 0.85, iconY + iconR).strokeColor(GOLD_LIGHT).lineWidth(0.6).stroke();
+    doc.ellipse(iconXs[0], iconY + iconR, iconR * 0.58, iconR * 0.22).strokeColor(GOLD_LIGHT).lineWidth(0.5).stroke();
+    doc.moveTo(iconXs[0], iconY + iconR - iconR * 0.82).lineTo(iconXs[0], iconY + iconR + iconR * 0.82).strokeColor(GOLD_LIGHT).lineWidth(0.5).stroke();
+    doc.moveTo(iconXs[0] - iconR * 0.82, iconY + iconR).lineTo(iconXs[0] + iconR * 0.82, iconY + iconR).strokeColor(GOLD_LIGHT).lineWidth(0.5).stroke();
 
-    // Icon 2: Star
+    // Icon 2: Star (Happy Clients)
     iconCircle(iconXs[1], iconY + iconR, iconR);
     const sCx = iconXs[1]; const sCy = iconY + iconR;
     const sPath: number[][] = [];
-    for (let si = 0; si < 10; si++) { const a = (si * Math.PI) / 5 - Math.PI / 2; const r = si % 2 === 0 ? 24 : 11; sPath.push([sCx + r * Math.cos(a), sCy + r * Math.sin(a)]); }
+    for (let si = 0; si < 10; si++) { const a = (si * Math.PI) / 5 - Math.PI / 2; const r = si % 2 === 0 ? 22 : 10; sPath.push([sCx + r * Math.cos(a), sCy + r * Math.sin(a)]); }
     doc.moveTo(sPath[0][0], sPath[0][1]);
     for (let si = 1; si < sPath.length; si++) doc.lineTo(sPath[si][0], sPath[si][1]);
     doc.closePath().fillColor(GOLD_LIGHT).fill();
 
-    // Icon 3: Diamond gem
+    // Icon 3: Diamond gem (Experience)
     iconCircle(iconXs[2], iconY + iconR, iconR);
     const gCx = iconXs[2]; const gCy = iconY + iconR;
-    doc.moveTo(gCx, gCy - 28).lineTo(gCx + 28, gCy).lineTo(gCx, gCy + 28).lineTo(gCx - 28, gCy).closePath().fillColor(GOLD_LIGHT).fill();
+    doc.moveTo(gCx, gCy - 26).lineTo(gCx + 26, gCy).lineTo(gCx, gCy + 26).lineTo(gCx - 26, gCy).closePath().fillColor(GOLD_LIGHT).fill();
 
-    // Icon 4: Shield + checkmark (Truly Custom)
+    // Icon 4: Shield + checkmark (Certified)
     iconCircle(iconXs[3], iconY + iconR, iconR);
     const shCx = iconXs[3]; const shCy = iconY + iconR - 2;
-    doc.moveTo(shCx - 28, shCy - 18).lineTo(shCx + 28, shCy - 18).lineTo(shCx + 28, shCy + 4).lineTo(shCx, shCy + 22).lineTo(shCx - 28, shCy + 4).closePath().strokeColor(GOLD_LIGHT).lineWidth(1.2).stroke();
-    doc.moveTo(shCx - 12, shCy + 2).lineTo(shCx - 2, shCy + 11).lineTo(shCx + 14, shCy - 11).strokeColor(GOLD).lineWidth(2.5).stroke();
+    doc.moveTo(shCx - 26, shCy - 17).lineTo(shCx + 26, shCy - 17).lineTo(shCx + 26, shCy + 4).lineTo(shCx, shCy + 20).lineTo(shCx - 26, shCy + 4).closePath().strokeColor(GOLD_LIGHT).lineWidth(1.0).stroke();
+    doc.moveTo(shCx - 11, shCy + 2).lineTo(shCx - 2, shCy + 10).lineTo(shCx + 13, shCy - 10).strokeColor(GOLD).lineWidth(2.0).stroke();
 
-    const labelY = iconY + iconR * 2 + 12;
-    const valueLines = [
+    // Icon labels — Playfair only, no bold
+    const labelY = iconY + iconR * 2 + 14;
+    const statLines = [
       ["Worldwide", "Shipping"],
       ["20,000+", "Happy Clients"],
       ["50+ Years", "Experience"],
@@ -287,35 +296,63 @@ router.post("/generate", async (req, res) => {
     ];
     iconXs.forEach((ix, vi) => {
       const lx = ix - iconLabelW / 2;
-      doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(12).text(valueLines[vi][0], lx, labelY, { width: iconLabelW, align: "center", lineBreak: false });
-      doc.fillColor(MID_GRAY).font("Helvetica").fontSize(9.5).text(valueLines[vi][1], lx, labelY + 18, { width: iconLabelW, align: "center", lineBreak: false });
+      doc.fillColor(BLACK).font("Playfair").fontSize(12).text(statLines[vi][0], lx, labelY, { width: iconLabelW, align: "center", lineBreak: false });
+      doc.fillColor(MID_GRAY).font("Playfair").fontSize(9).text(statLines[vi][1], lx, labelY + 19, { width: iconLabelW, align: "center", lineBreak: false });
     });
 
-    // ── Our Promise section ───────────────────────────────────────────────────
-    const promiseY = labelY + 60;
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, promiseY).lineTo(PAGE_W - MX, promiseY).stroke();
-    doc.strokeColor(GOLD).lineWidth(1.0).moveTo(MX, promiseY + 3).lineTo(PAGE_W - MX, promiseY + 3).stroke();
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, promiseY + 6).lineTo(PAGE_W - MX, promiseY + 6).stroke();
+    // ── Section divider ───────────────────────────────────────────────────────
+    const divider2Y = labelY + 52;
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.3).moveTo(MX, divider2Y).lineTo(PAGE_W - MX, divider2Y).stroke();
+    doc.strokeColor(GOLD).lineWidth(0.9).moveTo(dividerInnerMX, divider2Y + 4).lineTo(PAGE_W - dividerInnerMX, divider2Y + 4).stroke();
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.3).moveTo(MX, divider2Y + 8).lineTo(PAGE_W - MX, divider2Y + 8).stroke();
 
-    const ourPromiseY = promiseY + 22;
-    doc.fillColor(GOLD).font("Playfair").fontSize(13)
-      .text("O U R   P R O M I S E", 0, ourPromiseY, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 2 });
+    // ── Our Promise ───────────────────────────────────────────────────────────
+    const ourPromiseLabelY = divider2Y + 24;
+    doc.fillColor(GOLD).font("Playfair").fontSize(11)
+      .text("O U R   P R O M I S E", 0, ourPromiseLabelY, { width: PAGE_W, align: "center", lineBreak: false });
 
-    const promiseTextY = ourPromiseY + 28;
-    doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(11)
-      .text("Authenticity", cx - 280, promiseTextY, { width: 140, align: "center", lineBreak: false });
-    doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8)
-      .text("Lab-certified genuine diamonds", cx - 280, promiseTextY + 17, { width: 140, align: "center", lineBreak: false });
+    const promiseItemY = ourPromiseLabelY + 28;
+    const promiseCols = [cx - 270, cx - 70, cx + 130];
+    const promiseColW = 160;
+    const promiseData = [
+      ["Authenticity", "Lab-certified genuine diamonds"],
+      ["Commitment", "On-time, every order, every time"],
+      ["Quality", "Flawless, verified by our Gemmologists"],
+    ];
+    promiseData.forEach(([title, desc], i) => {
+      doc.fillColor(BLACK).font("Playfair").fontSize(11).text(title, promiseCols[i], promiseItemY, { width: promiseColW, align: "center", lineBreak: false });
+      doc.fillColor(MID_GRAY).font("Playfair").fontSize(8).text(desc, promiseCols[i], promiseItemY + 20, { width: promiseColW, align: "center", lineBreak: true });
+    });
 
-    doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(11)
-      .text("Commitment", cx - 70, promiseTextY, { width: 140, align: "center", lineBreak: false });
-    doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8)
-      .text("On-time, every order, every time", cx - 70, promiseTextY + 17, { width: 140, align: "center", lineBreak: false });
+    // ── Section divider ───────────────────────────────────────────────────────
+    const divider3Y = promiseItemY + 58;
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.3).moveTo(MX, divider3Y).lineTo(PAGE_W - MX, divider3Y).stroke();
+    doc.strokeColor(GOLD).lineWidth(0.9).moveTo(dividerInnerMX, divider3Y + 4).lineTo(PAGE_W - dividerInnerMX, divider3Y + 4).stroke();
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.3).moveTo(MX, divider3Y + 8).lineTo(PAGE_W - MX, divider3Y + 8).stroke();
 
-    doc.fillColor(BLACK).font("Helvetica-Bold").fontSize(11)
-      .text("Quality", cx + 140, promiseTextY, { width: 140, align: "center", lineBreak: false });
-    doc.fillColor(MID_GRAY).font("Helvetica").fontSize(8)
-      .text("Flawless, verified by our Gemmologists", cx + 140, promiseTextY + 17, { width: 140, align: "center", lineBreak: false });
+    // ── Our Values ────────────────────────────────────────────────────────────
+    const ourValuesLabelY = divider3Y + 24;
+    doc.fillColor(GOLD).font("Playfair").fontSize(11)
+      .text("O U R   V A L U E S", 0, ourValuesLabelY, { width: PAGE_W, align: "center", lineBreak: false });
+
+    const valuesItemY = ourValuesLabelY + 28;
+    const valuesCols = [cx - 270, cx - 70, cx + 130];
+    const valuesData = [
+      ["Craftsmanship", "Every piece shaped with devotion and mastery"],
+      ["Transparency", "Honest sourcing and clear pricing, always"],
+      ["Heritage", "Decades of fine jewellery legacy and trust"],
+    ];
+    valuesData.forEach(([title, desc], i) => {
+      doc.fillColor(BLACK).font("Playfair").fontSize(11).text(title, valuesCols[i], valuesItemY, { width: promiseColW, align: "center", lineBreak: false });
+      doc.fillColor(MID_GRAY).font("Playfair").fontSize(8).text(desc, valuesCols[i], valuesItemY + 20, { width: promiseColW, align: "center", lineBreak: true });
+    });
+
+    // ── Central ornament ─────────────────────────────────────────────────────
+    const ornamentY = valuesItemY + 72;
+    const ornW = 60;
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(cx - 200, ornamentY).lineTo(cx - ornW, ornamentY).stroke();
+    doc.circle(cx, ornamentY, 4).strokeColor(GOLD).lineWidth(0.8).stroke();
+    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(cx + ornW, ornamentY).lineTo(cx + 200, ornamentY).stroke();
 
     // ── Bottom rules + footer ─────────────────────────────────────────────────
     drawPageFooter();
