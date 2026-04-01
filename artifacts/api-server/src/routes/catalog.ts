@@ -260,31 +260,36 @@ router.post("/generate", async (req, res) => {
     const iconXs = [cx - 330, cx - 110, cx + 110, cx + 330];
     const iconLabelW = 150;
 
-    // Icon 1: Globe (Worldwide)
+    // Icon 1: Minimal globe — inner circle + horizontal + vertical hairlines
     iconCircle(iconXs[0], iconY + iconR, iconR);
-    doc.ellipse(iconXs[0], iconY + iconR, iconR * 0.58, iconR * 0.22).strokeColor(GOLD_LIGHT).lineWidth(0.5).stroke();
-    doc.moveTo(iconXs[0], iconY + iconR - iconR * 0.82).lineTo(iconXs[0], iconY + iconR + iconR * 0.82).strokeColor(GOLD_LIGHT).lineWidth(0.5).stroke();
-    doc.moveTo(iconXs[0] - iconR * 0.82, iconY + iconR).lineTo(iconXs[0] + iconR * 0.82, iconY + iconR).strokeColor(GOLD_LIGHT).lineWidth(0.5).stroke();
+    const i1cx = iconXs[0]; const i1cy = iconY + iconR; const i1r = iconR * 0.52;
+    doc.circle(i1cx, i1cy, i1r).strokeColor(GOLD_LIGHT).lineWidth(0.55).stroke();
+    doc.moveTo(i1cx - i1r, i1cy).lineTo(i1cx + i1r, i1cy).strokeColor(GOLD_LIGHT).lineWidth(0.55).stroke();
+    doc.moveTo(i1cx, i1cy - i1r).lineTo(i1cx, i1cy + i1r).strokeColor(GOLD_LIGHT).lineWidth(0.55).stroke();
 
-    // Icon 2: Star (Happy Clients)
+    // Icon 2: Thin heart outline (Happy Clients)
     iconCircle(iconXs[1], iconY + iconR, iconR);
-    const sCx = iconXs[1]; const sCy = iconY + iconR;
-    const sPath: number[][] = [];
-    for (let si = 0; si < 10; si++) { const a = (si * Math.PI) / 5 - Math.PI / 2; const r = si % 2 === 0 ? 22 : 10; sPath.push([sCx + r * Math.cos(a), sCy + r * Math.sin(a)]); }
-    doc.moveTo(sPath[0][0], sPath[0][1]);
-    for (let si = 1; si < sPath.length; si++) doc.lineTo(sPath[si][0], sPath[si][1]);
-    doc.closePath().fillColor(GOLD_LIGHT).fill();
+    const i2cx = iconXs[1]; const i2cy = iconY + iconR - 4; const hs = 14;
+    doc.moveTo(i2cx, i2cy + hs * 0.42)
+      .bezierCurveTo(i2cx - hs * 0.42, i2cy - hs * 0.62, i2cx - hs * 1.42, i2cy - hs * 0.62, i2cx - hs * 1.42, i2cy + hs * 0.22)
+      .bezierCurveTo(i2cx - hs * 1.42, i2cy + hs * 0.85, i2cx - hs * 0.8, i2cy + hs * 1.28, i2cx, i2cy + hs * 1.88)
+      .bezierCurveTo(i2cx + hs * 0.8, i2cy + hs * 1.28, i2cx + hs * 1.42, i2cy + hs * 0.85, i2cx + hs * 1.42, i2cy + hs * 0.22)
+      .bezierCurveTo(i2cx + hs * 1.42, i2cy - hs * 0.62, i2cx + hs * 0.42, i2cy - hs * 0.62, i2cx, i2cy + hs * 0.42)
+      .strokeColor(GOLD_LIGHT).lineWidth(0.7).stroke();
 
-    // Icon 3: Diamond gem (Experience)
+    // Icon 3: Thin diamond outline — no fill, clean stroke only
     iconCircle(iconXs[2], iconY + iconR, iconR);
-    const gCx = iconXs[2]; const gCy = iconY + iconR;
-    doc.moveTo(gCx, gCy - 26).lineTo(gCx + 26, gCy).lineTo(gCx, gCy + 26).lineTo(gCx - 26, gCy).closePath().fillColor(GOLD_LIGHT).fill();
+    const i3cx = iconXs[2]; const i3cy = iconY + iconR; const ds = 22;
+    doc.moveTo(i3cx, i3cy - ds).lineTo(i3cx + ds, i3cy).lineTo(i3cx, i3cy + ds).lineTo(i3cx - ds, i3cy)
+      .closePath().strokeColor(GOLD_LIGHT).lineWidth(0.7).stroke();
+    doc.moveTo(i3cx - ds * 0.6, i3cy - ds * 0.18).lineTo(i3cx + ds * 0.6, i3cy - ds * 0.18)
+      .strokeColor(GOLD_LIGHT).lineWidth(0.45).stroke();
 
-    // Icon 4: Shield + checkmark (Certified)
+    // Icon 4: Thin checkmark only — no shield
     iconCircle(iconXs[3], iconY + iconR, iconR);
-    const shCx = iconXs[3]; const shCy = iconY + iconR - 2;
-    doc.moveTo(shCx - 26, shCy - 17).lineTo(shCx + 26, shCy - 17).lineTo(shCx + 26, shCy + 4).lineTo(shCx, shCy + 20).lineTo(shCx - 26, shCy + 4).closePath().strokeColor(GOLD_LIGHT).lineWidth(1.0).stroke();
-    doc.moveTo(shCx - 11, shCy + 2).lineTo(shCx - 2, shCy + 10).lineTo(shCx + 13, shCy - 10).strokeColor(GOLD).lineWidth(2.0).stroke();
+    const i4cx = iconXs[3]; const i4cy = iconY + iconR;
+    doc.moveTo(i4cx - 17, i4cy + 2).lineTo(i4cx - 4, i4cy + 14).lineTo(i4cx + 18, i4cy - 13)
+      .strokeColor(GOLD_LIGHT).lineWidth(0.9).stroke();
 
     // Icon labels — Playfair only, no bold
     const labelY = iconY + iconR * 2 + 14;
