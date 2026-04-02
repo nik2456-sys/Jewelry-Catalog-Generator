@@ -412,7 +412,7 @@ router.post("/generate", async (req, res) => {
         chargeRow("Labour", fmt(p14.labourUSD));
         if (ct === "B2B" && p14.wastageUSD > 0) chargeRow("Wastage", fmt(p14.wastageUSD));
         chargeRow(`Handling (${config.handlingPercent}%)`, fmt(p14.handlingUSD));
-        if (ct === "B2C") chargeRow(`Wastage (${config.profitPercent}%)`, fmt(p14.profitUSD));
+        if (ct === "B2C") chargeRow("Wastage", fmt(p14.profitUSD));
         if (ct === "B2B" && config.adminChargePercent > 0) chargeRow(`Admin (${config.adminChargePercent}%)`, fmt(p14.adminUSD));
         y += 3;
         doc.strokeColor(RULE_COLOR).lineWidth(0.3).moveTo(innerX, y).lineTo(innerX + innerW, y).stroke();
