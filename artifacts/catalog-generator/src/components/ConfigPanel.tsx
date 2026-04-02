@@ -127,7 +127,7 @@ export function ConfigPanel({ formState, updatePricing, updateField }: ConfigPan
 
           {formState.catalogType === "B2C" && (
             <InputGroup
-              label="Profit Margin"
+              label="Wastage"
               value={formState.pricingConfig.profitPercent}
               onChange={(v) => updatePricing("profitPercent", v)}
               prefix="%"
