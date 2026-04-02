@@ -128,7 +128,7 @@ router.post("/upload", upload.single("file"), async (req, res) => {
     if (!req.file) { res.status(400).json({ error: "No file uploaded" }); return; }
     const workbook = XLSX.read(req.file.buffer, { type: "buffer" });
     const sheet = workbook.Sheets[workbook.SheetNames[0]];
-    const rows = XLSX.utils.sheet_to_json<Record<string, unknown>>(sheet, { header: 1, raw: false });
+    const rows = XLSX.utils.sheet_to_json<unknown[]>(sheet, { header: 1, raw: false });
     const headerRow = rows[0] as string[];
     const headerMap: Record<string, number> = {};
     if (Array.isArray(headerRow)) headerRow.forEach((h, i) => { headerMap[String(h).toLowerCase().trim()] = i; });
