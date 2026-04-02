@@ -235,20 +235,83 @@ router.post("/generate", async (req, res) => {
     // ══ COVER PAGE ═══════════════════════════════════════════════════════════
     doc.addPage();
 
-    if (coverBgBuf) {
-      // Embed the branded cover design as a full-page image
-      doc.image(coverBgBuf, 0, 0, { width: PAGE_W, height: PAGE_H });
-    } else {
-      // Fallback: plain cover with logo and footer
-      const coverLogoSize = 200;
-      const coverLogoY = 80;
-      drawLogo(cx - coverLogoSize / 2, coverLogoY, coverLogoSize);
-      doc.fillColor(GOLD).font("Playfair").fontSize(36)
-        .text("GEMONE", 0, coverLogoY + coverLogoSize + 20, { width: PAGE_W, align: "center", lineBreak: false });
-      doc.fillColor(GOLD_LIGHT).font("Playfair").fontSize(14)
-        .text("\u00B7  Eternal Luxury  \u00B7", 0, coverLogoY + coverLogoSize + 70, { width: PAGE_W, align: "center", lineBreak: false });
-      drawPageFooter();
+    const DARK_GREEN   = "#1B5E40";
+    const COVER_GOLD   = "#C8A84B";
+    const SIDEBAR_X    = 808;
+    const SIDEBAR_W    = PAGE_W - SIDEBAR_X;
+    const MAIN_W       = SIDEBAR_X;
+    const mainCx       = MAIN_W / 2;
+
+    // ── Right sidebar ─────────────────────────────────────────────────────────
+    doc.rect(SIDEBAR_X, 0, SIDEBAR_W, PAGE_H).fillColor(DARK_GREEN).fill();
+
+    // Repeating diamond tile pattern on sidebar
+    const TILE = 40;
+    const ps   = 11; // half-size of each diamond
+    const patCols = Math.ceil(SIDEBAR_W / TILE) + 1;
+    const patRows = Math.ceil(PAGE_H  / TILE) + 2;
+    for (let pr = 0; pr < patRows; pr++) {
+      for (let pc = 0; pc < patCols; pc++) {
+        const ptx = SIDEBAR_X + pc * TILE + (SIDEBAR_W % TILE) / 2;
+        const pty = pr * TILE + (pr % 2 === 0 ? 0 : TILE / 2) - TILE / 2;
+        doc.moveTo(ptx, pty - ps).lineTo(ptx + ps, pty)
+           .lineTo(ptx, pty + ps).lineTo(ptx - ps, pty)
+           .closePath().strokeColor(COVER_GOLD).lineWidth(0.55).stroke();
+        // Inner cross lines
+        doc.moveTo(ptx - ps * 0.45, pty).lineTo(ptx + ps * 0.45, pty)
+           .strokeColor(COVER_GOLD).lineWidth(0.3).stroke();
+        doc.moveTo(ptx, pty - ps * 0.45).lineTo(ptx, pty + ps * 0.45)
+           .strokeColor(COVER_GOLD).lineWidth(0.3).stroke();
+      }
     }
+
+    // ── Logo mark ─────────────────────────────────────────────────────────────
+    const coverLogoSize = 82;
+    const coverLogoY    = 118;
+    if (logoBuf) {
+      try {
+        doc.image(logoBuf, mainCx - coverLogoSize / 2, coverLogoY,
+          { fit: [coverLogoSize, coverLogoSize], align: "center", valign: "center" });
+      } catch { /* skip */ }
+    }
+
+    // ── "GEMONE" brand name ───────────────────────────────────────────────────
+    const gemoneY = coverLogoY + coverLogoSize + 22;
+    doc.fillColor(DARK_GREEN).font("Helvetica-Bold").fontSize(70)
+      .text("GEMONE", 0, gemoneY,
+        { width: MAIN_W, align: "center", lineBreak: false, characterSpacing: 10 });
+
+    // ── ". Eternal Luxury ." tagline ──────────────────────────────────────────
+    const tagY = gemoneY + 84;
+    doc.fillColor(COVER_GOLD).font("Playfair").fontSize(21)
+      .text("\u00B7  Eternal Luxury  \u00B7", 0, tagY,
+        { width: MAIN_W, align: "center", lineBreak: false });
+
+    // ── "OUR PROMISE" section ─────────────────────────────────────────────────
+    const promiseTitleY = 595;
+    doc.fillColor(COVER_GOLD).font("Helvetica").fontSize(13)
+      .text("O U R   P R O M I S E", 0, promiseTitleY,
+        { width: MAIN_W, align: "center", lineBreak: false, characterSpacing: 3 });
+
+    // Thin rule under heading
+    doc.strokeColor(COVER_GOLD).lineWidth(0.45)
+      .moveTo(MAIN_W * 0.12, promiseTitleY + 22)
+      .lineTo(MAIN_W * 0.88, promiseTitleY + 22).stroke();
+
+    // Three promise columns
+    const pY = promiseTitleY + 40;
+    const pColW = 210;
+    const promiseCover = [
+      { x: 55,  title: "Authenticity", desc: "Lab-certified Genuine\nDiamonds" },
+      { x: 300, title: "Commitment",   desc: "On-time, Every order,\nEvery Time" },
+      { x: 545, title: "Quality",      desc: "Flawless, verified by Our\nGemmologists" },
+    ];
+    promiseCover.forEach(({ x, title, desc }) => {
+      doc.fillColor(DARK_GREEN).font("Helvetica-Bold").fontSize(11)
+        .text(title, x, pY, { width: pColW, align: "left", lineBreak: false });
+      doc.fillColor(MID_GRAY).font("Helvetica").fontSize(9)
+        .text(desc, x, pY + 18, { width: pColW, align: "left", lineBreak: true });
+    });
 
     // ══ CATALOG PAGES ═════════════════════════════════════════════════════════
     const drawHeader = (pageNum: number) => {
