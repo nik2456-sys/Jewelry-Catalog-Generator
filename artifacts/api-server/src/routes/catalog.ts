@@ -235,83 +235,73 @@ router.post("/generate", async (req, res) => {
     // ══ COVER PAGE ═══════════════════════════════════════════════════════════
     doc.addPage();
 
-    const DARK_GREEN   = "#1B5E40";
-    const COVER_GOLD   = "#C8A84B";
-    const SIDEBAR_X    = 808;
-    const SIDEBAR_W    = PAGE_W - SIDEBAR_X;
-    const MAIN_W       = SIDEBAR_X;
-    const mainCx       = MAIN_W / 2;
-
-    // ── Right sidebar ─────────────────────────────────────────────────────────
-    doc.rect(SIDEBAR_X, 0, SIDEBAR_W, PAGE_H).fillColor(DARK_GREEN).fill();
-
-    // Repeating diamond tile pattern on sidebar
-    const TILE = 40;
-    const ps   = 11; // half-size of each diamond
-    const patCols = Math.ceil(SIDEBAR_W / TILE) + 1;
-    const patRows = Math.ceil(PAGE_H  / TILE) + 2;
-    for (let pr = 0; pr < patRows; pr++) {
-      for (let pc = 0; pc < patCols; pc++) {
-        const ptx = SIDEBAR_X + pc * TILE + (SIDEBAR_W % TILE) / 2;
-        const pty = pr * TILE + (pr % 2 === 0 ? 0 : TILE / 2) - TILE / 2;
-        doc.moveTo(ptx, pty - ps).lineTo(ptx + ps, pty)
-           .lineTo(ptx, pty + ps).lineTo(ptx - ps, pty)
-           .closePath().strokeColor(COVER_GOLD).lineWidth(0.55).stroke();
-        // Inner cross lines
-        doc.moveTo(ptx - ps * 0.45, pty).lineTo(ptx + ps * 0.45, pty)
-           .strokeColor(COVER_GOLD).lineWidth(0.3).stroke();
-        doc.moveTo(ptx, pty - ps * 0.45).lineTo(ptx, pty + ps * 0.45)
-           .strokeColor(COVER_GOLD).lineWidth(0.3).stroke();
-      }
+    // ── Cover: embed branded design image ────────────────────────────────────
+    if (coverBgBuf) {
+      doc.image(coverBgBuf, 0, 0, { width: PAGE_W, height: PAGE_H });
+    } else {
+      // Fallback plain cover
+      drawLogo(cx - 100, 80, 200);
+      doc.fillColor(GOLD).font("Playfair").fontSize(36)
+        .text("GEMONE", 0, 300, { width: PAGE_W, align: "center", lineBreak: false });
+      drawPageFooter();
     }
 
-    // ── Logo mark ─────────────────────────────────────────────────────────────
-    const coverLogoSize = 82;
-    const coverLogoY    = 118;
+    // ══ ABOUT US PAGE ═════════════════════════════════════════════════════════
+    doc.addPage();
+
+    const AU_GREEN = "#1B5E40";
+    const AU_GOLD  = "#C8A84B";
+    const AU_MX    = 80;
+    const AU_CW    = PAGE_W - AU_MX * 2;
+
+    // Top triple rule
+    doc.strokeColor(AU_GOLD).lineWidth(0.4).moveTo(AU_MX, 44).lineTo(PAGE_W - AU_MX, 44).stroke();
+    doc.strokeColor(AU_GOLD).lineWidth(1.2).moveTo(AU_MX, 49).lineTo(PAGE_W - AU_MX, 49).stroke();
+    doc.strokeColor(AU_GOLD).lineWidth(0.4).moveTo(AU_MX, 54).lineTo(PAGE_W - AU_MX, 54).stroke();
+
+    // Small logo
     if (logoBuf) {
-      try {
-        doc.image(logoBuf, mainCx - coverLogoSize / 2, coverLogoY,
-          { fit: [coverLogoSize, coverLogoSize], align: "center", valign: "center" });
-      } catch { /* skip */ }
+      try { doc.image(logoBuf, cx - 28, 68, { fit: [56, 56], align: "center", valign: "center" }); } catch { /* skip */ }
     }
 
-    // ── "GEMONE" brand name ───────────────────────────────────────────────────
-    const gemoneY = coverLogoY + coverLogoSize + 22;
-    doc.fillColor(DARK_GREEN).font("Helvetica-Bold").fontSize(70)
-      .text("GEMONE", 0, gemoneY,
-        { width: MAIN_W, align: "center", lineBreak: false, characterSpacing: 10 });
+    // "ABOUT US" heading
+    doc.fillColor(AU_GREEN).font("Helvetica-Bold").fontSize(28)
+      .text("A B O U T   U S", 0, 138, { width: PAGE_W, align: "center", lineBreak: false, characterSpacing: 4 });
 
-    // ── ". Eternal Luxury ." tagline ──────────────────────────────────────────
-    const tagY = gemoneY + 84;
-    doc.fillColor(COVER_GOLD).font("Playfair").fontSize(21)
-      .text("\u00B7  Eternal Luxury  \u00B7", 0, tagY,
-        { width: MAIN_W, align: "center", lineBreak: false });
+    // Gold rule under heading
+    doc.strokeColor(AU_GOLD).lineWidth(0.6)
+      .moveTo(cx - 120, 176).lineTo(cx + 120, 176).stroke();
 
-    // ── "OUR PROMISE" section ─────────────────────────────────────────────────
-    const promiseTitleY = 595;
-    doc.fillColor(COVER_GOLD).font("Helvetica").fontSize(13)
-      .text("O U R   P R O M I S E", 0, promiseTitleY,
-        { width: MAIN_W, align: "center", lineBreak: false, characterSpacing: 3 });
+    // "Gemone Diamond" pull-quote label
+    doc.fillColor(AU_GOLD).font("Playfair").fontSize(13)
+      .text("Gemone Diamond  ·  Fine Jewellery  ·  Surat, India", 0, 192, { width: PAGE_W, align: "center", lineBreak: false });
 
-    // Thin rule under heading
-    doc.strokeColor(COVER_GOLD).lineWidth(0.45)
-      .moveTo(MAIN_W * 0.12, promiseTitleY + 22)
-      .lineTo(MAIN_W * 0.88, promiseTitleY + 22).stroke();
-
-    // Three promise columns
-    const pY = promiseTitleY + 40;
-    const pColW = 210;
-    const promiseCover = [
-      { x: 55,  title: "Authenticity", desc: "Lab-certified Genuine\nDiamonds" },
-      { x: 300, title: "Commitment",   desc: "On-time, Every order,\nEvery Time" },
-      { x: 545, title: "Quality",      desc: "Flawless, verified by Our\nGemmologists" },
+    // Body paragraphs
+    const auBodyY = 234;
+    const paragraphs = [
+      "Gemone Diamond is an Indian diamond production enterprise situated in Surat. We offer a diverse selection of Natural Diamonds, Lab Grown Diamonds, Moissanites, and their jewelry in a variety of shapes and sizes at competitive prices. As a result, every diamond and piece of jewelry manufactured by Gemone Diamond is one-of-a-kind and special, since it is examined and graded by an IGI or GIA laboratory, ensuring that what you buy from us is nothing less than the greatest piece of jewelry.",
+      "We have been producing natural diamonds and beautiful jewelry for about 50 years, and we have also been involved in the lab diamond and moissanite industries for over 20 years. We are well-known for importing and exporting a wide variety of exquisite premium Lab Grown diamonds, Moissanite, and their jewelry.",
+      "Being at the cutting edge of science and technology, our goal is to make a stunning piece of diamond jewelry as a symbol of undying love.",
+      "The best aspect of Gemone Diamond is that they can create personalized jewelry based on your wants and tastes, and we can also create unique brand jewelry. We are confident that our jewelry is less expensive than that of any other local merchant. The Gemone Diamond team ensures that the items they offer meet our valued customers' quality expectations.",
+      "We serve clients from Switzerland, the USA, UK, Russian Federation, Australia, European Union, Thailand, Japan, U.A.E, and many other countries and the main thing is we do worldwide shipping so, any of the clients can make purchases from any corner of the world.",
+      "Gemone Diamond provides its customers with luxurious, remarkable, and purest Diamonds, Moissanite, and Lab-Diamond Jewelry.",
     ];
-    promiseCover.forEach(({ x, title, desc }) => {
-      doc.fillColor(DARK_GREEN).font("Helvetica-Bold").fontSize(11)
-        .text(title, x, pY, { width: pColW, align: "left", lineBreak: false });
-      doc.fillColor(MID_GRAY).font("Helvetica").fontSize(9)
-        .text(desc, x, pY + 18, { width: pColW, align: "left", lineBreak: true });
+
+    let auY = auBodyY;
+    paragraphs.forEach((para, idx) => {
+      doc.fillColor(DARK_GRAY).font("Playfair").fontSize(10.5)
+        .text(para, AU_MX, auY, { width: AU_CW, align: "justify", lineBreak: true });
+      auY = doc.y + (idx < paragraphs.length - 1 ? 14 : 0);
     });
+
+    // Bottom decorative rule + footer text
+    doc.strokeColor(AU_GOLD).lineWidth(0.4).moveTo(AU_MX, PAGE_H - 80).lineTo(PAGE_W - AU_MX, PAGE_H - 80).stroke();
+    doc.strokeColor(AU_GOLD).lineWidth(1.2).moveTo(AU_MX, PAGE_H - 76).lineTo(PAGE_W - AU_MX, PAGE_H - 76).stroke();
+    doc.strokeColor(AU_GOLD).lineWidth(0.4).moveTo(AU_MX, PAGE_H - 72).lineTo(PAGE_W - AU_MX, PAGE_H - 72).stroke();
+    doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(8)
+      .text("G E M O N E   D I A M O N D   ·   F I N E   J E W E L L E R Y", 0, PAGE_H - 58, { width: PAGE_W, align: "center", lineBreak: false });
+    doc.fillColor(LIGHT_GRAY).font("Helvetica").fontSize(7.5)
+      .text(MONTH_YEAR, 0, PAGE_H - 42, { width: PAGE_W, align: "center", lineBreak: false });
 
     // ══ CATALOG PAGES ═════════════════════════════════════════════════════════
     const drawHeader = (pageNum: number) => {
