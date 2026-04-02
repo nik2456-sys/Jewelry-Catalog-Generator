@@ -9,6 +9,7 @@ import fs from "fs";
 const __dirnameESM = path.dirname(fileURLToPath(import.meta.url));
 const PLAYFAIR_FONT = path.join(__dirnameESM, "../fonts/PlayfairDisplay-Regular.ttf");
 const LOGO_PATH = path.join(__dirnameESM, "../assets/logo.png");
+const COVER_BG_PATH = path.join(__dirnameESM, "../assets/cover-bg.png");
 
 const router: IRouter = Router();
 const upload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 100 * 1024 * 1024 } });
@@ -169,6 +170,8 @@ router.post("/generate", async (req, res) => {
 
     let logoBuf: Buffer | null = null;
     try { logoBuf = fs.readFileSync(LOGO_PATH); } catch { logoBuf = null; }
+    let coverBgBuf: Buffer | null = null;
+    try { coverBgBuf = fs.readFileSync(COVER_BG_PATH); } catch { coverBgBuf = null; }
 
     const allUrls = new Set<string>();
     for (const item of items) { if (item.imageLeft) allUrls.add(item.imageLeft); if (item.imageCenter) allUrls.add(item.imageCenter); if (item.imageRight) allUrls.add(item.imageRight); }
@@ -232,135 +235,20 @@ router.post("/generate", async (req, res) => {
     // ══ COVER PAGE ═══════════════════════════════════════════════════════════
     doc.addPage();
 
-    // ── Top decorative border ─────────────────────────────────────────────────
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, 38).lineTo(PAGE_W - MX, 38).stroke();
-    doc.strokeColor(GOLD).lineWidth(1.2).moveTo(MX, 43).lineTo(PAGE_W - MX, 43).stroke();
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(MX, 48).lineTo(PAGE_W - MX, 48).stroke();
-
-    // ── Logo ──────────────────────────────────────────────────────────────────
-    const coverLogoSize = 200;
-    const coverLogoY = 58;
-    drawLogo(cx - coverLogoSize / 2, coverLogoY, coverLogoSize);
-
-    // ── Tagline beneath logo ──────────────────────────────────────────────────
-    const taglineY = coverLogoY + coverLogoSize + 10;
-    doc.fillColor(GOLD_LIGHT).font("Playfair").fontSize(10)
-      .text("F I N E   J E W E L L E R Y   ·   E T E R N A L   L U X U R Y", 0, taglineY, { width: PAGE_W, align: "center", lineBreak: false });
-
-    // ── Elegant section divider ───────────────────────────────────────────────
-    const divider1Y = taglineY + 26;
-    const dividerInnerMX = MX + 120;
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.3).moveTo(MX, divider1Y).lineTo(PAGE_W - MX, divider1Y).stroke();
-    doc.strokeColor(GOLD).lineWidth(0.9).moveTo(dividerInnerMX, divider1Y + 4).lineTo(PAGE_W - dividerInnerMX, divider1Y + 4).stroke();
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.3).moveTo(MX, divider1Y + 8).lineTo(PAGE_W - MX, divider1Y + 8).stroke();
-
-    // ── 4 Signature Statistics (Values) ──────────────────────────────────────
-    const iconY = divider1Y + 30;
-    const iconR = 42;
-    const iconXs = [cx - 330, cx - 110, cx + 110, cx + 330];
-    const iconLabelW = 150;
-
-    // Icon 1: Minimal globe — inner circle + horizontal + vertical hairlines
-    iconCircle(iconXs[0], iconY + iconR, iconR);
-    const i1cx = iconXs[0]; const i1cy = iconY + iconR; const i1r = iconR * 0.52;
-    doc.circle(i1cx, i1cy, i1r).strokeColor(GOLD_LIGHT).lineWidth(0.55).stroke();
-    doc.moveTo(i1cx - i1r, i1cy).lineTo(i1cx + i1r, i1cy).strokeColor(GOLD_LIGHT).lineWidth(0.55).stroke();
-    doc.moveTo(i1cx, i1cy - i1r).lineTo(i1cx, i1cy + i1r).strokeColor(GOLD_LIGHT).lineWidth(0.55).stroke();
-
-    // Icon 2: Thin heart outline (Happy Clients)
-    iconCircle(iconXs[1], iconY + iconR, iconR);
-    const i2cx = iconXs[1]; const i2cy = iconY + iconR - 4; const hs = 14;
-    doc.moveTo(i2cx, i2cy + hs * 0.42)
-      .bezierCurveTo(i2cx - hs * 0.42, i2cy - hs * 0.62, i2cx - hs * 1.42, i2cy - hs * 0.62, i2cx - hs * 1.42, i2cy + hs * 0.22)
-      .bezierCurveTo(i2cx - hs * 1.42, i2cy + hs * 0.85, i2cx - hs * 0.8, i2cy + hs * 1.28, i2cx, i2cy + hs * 1.88)
-      .bezierCurveTo(i2cx + hs * 0.8, i2cy + hs * 1.28, i2cx + hs * 1.42, i2cy + hs * 0.85, i2cx + hs * 1.42, i2cy + hs * 0.22)
-      .bezierCurveTo(i2cx + hs * 1.42, i2cy - hs * 0.62, i2cx + hs * 0.42, i2cy - hs * 0.62, i2cx, i2cy + hs * 0.42)
-      .strokeColor(GOLD_LIGHT).lineWidth(0.7).stroke();
-
-    // Icon 3: Thin diamond outline — no fill, clean stroke only
-    iconCircle(iconXs[2], iconY + iconR, iconR);
-    const i3cx = iconXs[2]; const i3cy = iconY + iconR; const ds = 22;
-    doc.moveTo(i3cx, i3cy - ds).lineTo(i3cx + ds, i3cy).lineTo(i3cx, i3cy + ds).lineTo(i3cx - ds, i3cy)
-      .closePath().strokeColor(GOLD_LIGHT).lineWidth(0.7).stroke();
-    doc.moveTo(i3cx - ds * 0.6, i3cy - ds * 0.18).lineTo(i3cx + ds * 0.6, i3cy - ds * 0.18)
-      .strokeColor(GOLD_LIGHT).lineWidth(0.45).stroke();
-
-    // Icon 4: Thin checkmark only — no shield
-    iconCircle(iconXs[3], iconY + iconR, iconR);
-    const i4cx = iconXs[3]; const i4cy = iconY + iconR;
-    doc.moveTo(i4cx - 17, i4cy + 2).lineTo(i4cx - 4, i4cy + 14).lineTo(i4cx + 18, i4cy - 13)
-      .strokeColor(GOLD_LIGHT).lineWidth(0.9).stroke();
-
-    // Icon labels — Playfair only, no bold
-    const labelY = iconY + iconR * 2 + 14;
-    const statLines = [
-      ["Worldwide", "Shipping"],
-      ["20,000+", "Happy Clients"],
-      ["50+ Years", "Experience"],
-      ["Certified Quality", "Truly Custom"],
-    ];
-    iconXs.forEach((ix, vi) => {
-      const lx = ix - iconLabelW / 2;
-      doc.fillColor(BLACK).font("Playfair").fontSize(12).text(statLines[vi][0], lx, labelY, { width: iconLabelW, align: "center", lineBreak: false });
-      doc.fillColor(MID_GRAY).font("Playfair").fontSize(9).text(statLines[vi][1], lx, labelY + 19, { width: iconLabelW, align: "center", lineBreak: false });
-    });
-
-    // ── Section divider ───────────────────────────────────────────────────────
-    const divider2Y = labelY + 52;
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.3).moveTo(MX, divider2Y).lineTo(PAGE_W - MX, divider2Y).stroke();
-    doc.strokeColor(GOLD).lineWidth(0.9).moveTo(dividerInnerMX, divider2Y + 4).lineTo(PAGE_W - dividerInnerMX, divider2Y + 4).stroke();
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.3).moveTo(MX, divider2Y + 8).lineTo(PAGE_W - MX, divider2Y + 8).stroke();
-
-    // ── Our Promise ───────────────────────────────────────────────────────────
-    const ourPromiseLabelY = divider2Y + 24;
-    doc.fillColor(GOLD).font("Playfair").fontSize(11)
-      .text("O U R   P R O M I S E", 0, ourPromiseLabelY, { width: PAGE_W, align: "center", lineBreak: false });
-
-    const promiseItemY = ourPromiseLabelY + 28;
-    const promiseCols = [cx - 270, cx - 70, cx + 130];
-    const promiseColW = 160;
-    const promiseData = [
-      ["Authenticity", "Lab-certified genuine diamonds"],
-      ["Commitment", "On-time, every order, every time"],
-      ["Quality", "Flawless, verified by our Gemmologists"],
-    ];
-    promiseData.forEach(([title, desc], i) => {
-      doc.fillColor(BLACK).font("Playfair").fontSize(11).text(title, promiseCols[i], promiseItemY, { width: promiseColW, align: "center", lineBreak: false });
-      doc.fillColor(MID_GRAY).font("Playfair").fontSize(8).text(desc, promiseCols[i], promiseItemY + 20, { width: promiseColW, align: "center", lineBreak: true });
-    });
-
-    // ── Section divider ───────────────────────────────────────────────────────
-    const divider3Y = promiseItemY + 58;
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.3).moveTo(MX, divider3Y).lineTo(PAGE_W - MX, divider3Y).stroke();
-    doc.strokeColor(GOLD).lineWidth(0.9).moveTo(dividerInnerMX, divider3Y + 4).lineTo(PAGE_W - dividerInnerMX, divider3Y + 4).stroke();
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.3).moveTo(MX, divider3Y + 8).lineTo(PAGE_W - MX, divider3Y + 8).stroke();
-
-    // ── Our Values ────────────────────────────────────────────────────────────
-    const ourValuesLabelY = divider3Y + 24;
-    doc.fillColor(GOLD).font("Playfair").fontSize(11)
-      .text("O U R   V A L U E S", 0, ourValuesLabelY, { width: PAGE_W, align: "center", lineBreak: false });
-
-    const valuesItemY = ourValuesLabelY + 28;
-    const valuesCols = [cx - 270, cx - 70, cx + 130];
-    const valuesData = [
-      ["Craftsmanship", "Every piece shaped with devotion and mastery"],
-      ["Transparency", "Honest sourcing and clear pricing, always"],
-      ["Heritage", "Decades of fine jewellery legacy and trust"],
-    ];
-    valuesData.forEach(([title, desc], i) => {
-      doc.fillColor(BLACK).font("Playfair").fontSize(11).text(title, valuesCols[i], valuesItemY, { width: promiseColW, align: "center", lineBreak: false });
-      doc.fillColor(MID_GRAY).font("Playfair").fontSize(8).text(desc, valuesCols[i], valuesItemY + 20, { width: promiseColW, align: "center", lineBreak: true });
-    });
-
-    // ── Central ornament ─────────────────────────────────────────────────────
-    const ornamentY = valuesItemY + 72;
-    const ornW = 60;
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(cx - 200, ornamentY).lineTo(cx - ornW, ornamentY).stroke();
-    doc.circle(cx, ornamentY, 4).strokeColor(GOLD).lineWidth(0.8).stroke();
-    doc.strokeColor(GOLD_LIGHT).lineWidth(0.4).moveTo(cx + ornW, ornamentY).lineTo(cx + 200, ornamentY).stroke();
-
-    // ── Bottom rules + footer ─────────────────────────────────────────────────
-    drawPageFooter();
+    if (coverBgBuf) {
+      // Embed the branded cover design as a full-page image
+      doc.image(coverBgBuf, 0, 0, { width: PAGE_W, height: PAGE_H });
+    } else {
+      // Fallback: plain cover with logo and footer
+      const coverLogoSize = 200;
+      const coverLogoY = 80;
+      drawLogo(cx - coverLogoSize / 2, coverLogoY, coverLogoSize);
+      doc.fillColor(GOLD).font("Playfair").fontSize(36)
+        .text("GEMONE", 0, coverLogoY + coverLogoSize + 20, { width: PAGE_W, align: "center", lineBreak: false });
+      doc.fillColor(GOLD_LIGHT).font("Playfair").fontSize(14)
+        .text("\u00B7  Eternal Luxury  \u00B7", 0, coverLogoY + coverLogoSize + 70, { width: PAGE_W, align: "center", lineBreak: false });
+      drawPageFooter();
+    }
 
     // ══ CATALOG PAGES ═════════════════════════════════════════════════════════
     const drawHeader = (pageNum: number) => {
